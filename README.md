@@ -5,7 +5,7 @@ Dub is is a set of classes designed to ease Doctrine 2 development.  It uses sim
 ### Creating a Model
 
 ```php
-<?php namespace Vendor\Project
+<?php namespace Dotink\Test
 {
 	use Dotink\Dub\Model;
 
@@ -71,7 +71,7 @@ $databases->add('default', $connection);
 ### Writing the Schema
 
 ```php
-$databases->createSchema('default', ['Dotink\Dub\User']);
+$databases->createSchema('default', ['Dotink\Test\User']);
 ```
 
 ### Persisting a Model

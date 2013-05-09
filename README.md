@@ -71,7 +71,7 @@ $databases->add('default', $connection);
 ### Writing the Schema
 
 ```php
-$databases->createSchema($default, ['Dotink\Dub\User']);
+$databases->createSchema('default', ['Dotink\Dub\User']);
 ```
 
 ### Persisting a Model

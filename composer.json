@@ -1,0 +1,29 @@
+{
+	"name": "dotink/dub",
+	"description": "Dub is a persistence layer agnostic record keeper",
+	"keywords": [],
+	"license": "AGPL",
+	"authors": [
+		{
+			"name": "Matthew J. Sahagian",
+			"email": "msahagian@dotink.org",
+			"role": "Developer"
+		}
+	],
+	"minimum-stability": "dev",
+	"repositories": [
+		{
+			"type": "composer",
+			"url": "http://packages.dotink.org"
+		}
+	],
+	"require": {
+		"php": ">=5.4.0",
+		"doctrine/orm": "2.3.3",
+		"dotink/flourish-datetime": "dev-master",
+		"dotink/flourish-text": "dev-master"
+	},
+	"autoload": {
+		"classmap": ["src/"]
+	}
+}

@@ -17,7 +17,9 @@
 			Model::configure('Dotink\Lab\User', [
 				'pkey' => 'id',
 				'fields' => [
-					'id' => ['type' => 'serial']
+					'id'           => ['type' => 'serial'],
+					'emailAddress' => ['nullable' => FALSE, 'unique' => TRUE],
+					'dateCreated'  => ['type' => 'datetime']
 				]
 			]);
 
@@ -25,12 +27,19 @@
 			{
 				protected $id = NULL;
 				protected $name = NULL;
+				protected $emailAddress = NULL;
+				protected $dateCreated = NULL;
+
+				public function __construct()
+				{
+					$this->dateCreated = new \DateTime();
+				}
 			}
 		},
 
 		'tests' => [
 			'Create Schema' => function($data, $shared) {
-				$shared->databases->map('Dotink\Lab\User', 'default');
+				$shared->databases->map('default', 'Dotink\Lab\User');
 				$shared->databases->createSchema('default');
 			},
 
@@ -42,14 +51,59 @@
 					-> using($user)
 					-> equals('Matthew J. Sahagian')
 				;
+
+				assert($shared->databases->isNew('default', $user))
+					-> equals(TRUE)
+				;
 			},
 
 			'Store Model' => function($data, $shared) {
 				$user = new User();
 				$user->setName('Matthew J. Sahagian');
+				$user->setEmailAddress('info@dotink.org');
 
 				$shared->databases['default']->persist($user);
 				$shared->databases['default']->flush();
+
+				assert($shared->databases->isManaged('default', $user))
+					-> equals(TRUE)
+				;
+
+			},
+
+			'Store NULL on non-Nullable' => function($data, $shared) {
+				assert(function() use ($shared) {
+
+					//
+					// We will attempt to insert a record which violates the nullable
+					// constraint and make sure it throws an exception.
+					//
+
+					$user = new User();
+					$user->setName('John Smith');
+
+					$shared->databases['default']->persist($user);
+					$shared->databases['default']->flush();
+
+				})->throws('Doctrine\DBAL\DBALException');
+			},
+
+			'Store Non-Unique' => function($data, $shared) {
+				assert(function() use ($shared) {
+
+					//
+					// We will attempt to insert a record which violates the unique
+					// constraint and make sure it throws an exception.
+					//
+
+					$user = new User();
+					$user->setName('John Smith');
+					$user->setEmailAddress('info@dotink.org');
+
+					$shared->databases['default']->persist($user);
+					$shared->databases['default']->flush();
+
+				})->throws('Doctrine\ORM\ORMException');
 			},
 
 			'Read Model' => function($data, $shared) {
@@ -58,6 +112,11 @@
 				assert('Dotink\Lab\User::$name')
 					-> using($user)
 					-> equals('Matthew J. Sahagian')
+				;
+
+				assert('Dotink\Lab\User::$dateCreated')
+					-> using($user)
+					-> isInstanceOf('DateTime')
 				;
 			}
 		],

@@ -1,87 +1,85 @@
-<?php
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license. For more information, see
- * <http://www.doctrine-project.org>.
- */
-
-namespace Dotink\Dub;
-
-use Doctrine\Common\Persistence\Mapping\Driver\MappingDriver;
-use Doctrine\Common\Persistence\Mapping\ClassMetadata;
-use Doctrine\Common\Persistence\Mapping\MappingException;
-
-/**
- * The StaticPHPDriver calls a static loadMetadata() method on your entity
- * classes where you can manually populate the ClassMetadata instance.
- *
- * @license 	http://www.opensource.org/licenses/lgpl-license.php LGPL
- * @link    	www.doctrine-project.org
- * @since   	2.2
- * @author      Benjamin Eberlei <kontakt@beberlei.de>
- * @author      Guilherme Blanco <guilhermeblanco@hotmail.com>
- * @author      Jonathan H. Wage <jonwage@gmail.com>
- * @author      Roman Borschel <roman@code-factory.org>
- */
-class Driver implements MappingDriver
+<?php namespace Dotink\Dub
 {
+    use Doctrine\Common\Persistence\Mapping\Driver\MappingDriver;
+    use Doctrine\Common\Persistence\Mapping\ClassMetadata;
+
     /**
-     * Paths of entity directories.
+     * A custom driver for Dub
      *
-     * @var array
+     * This driver is super simple and is configuration driven.
      */
-    private $paths = array();
-
-    /**
-     * Map of all class names.
-     *
-     * @var array
-     */
-    private $classNames;
-
-    /**
-     * Constructor
-     *
-     * @param array|string $paths
-     */
-    public function __construct()
+    class Driver implements MappingDriver
     {
-    }
+        /**
+         * Paths of entity directories.
+         *
+         * @access private
+         * @var array
+         */
+        private $paths = array();
 
-    /**
-     * {@inheritdoc}
-     */
-    public function loadMetadataForClass($className, ClassMetadata $metadata)
-    {
-        $className::loadMetadata($metadata);
-    }
 
-    /**
-     * {@inheritDoc}
-     * @todo Same code exists in AnnotationDriver, should we re-use it somehow or not worry about it?
-     */
-    public function getAllClassNames()
-    {
-        return array();
-    }
+        /**
+         * Map of all class names.
+         *
+         * @access private
+         * @var array
+         */
+        private $classNames;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function isTransient($className)
-    {
-        return $className == __NAMESPACE__ . '\Model';
+
+        /**
+         * Get all registered entity classes
+         *
+         * @access private
+         * @return array The registered entity classes
+         */
+        public function getAllClassNames()
+        {
+            return array();
+        }
+
+
+        /**
+         * Determines if a class is transient (non-entity)
+         *
+         * @access public
+         * @param string $class_name The class to check
+         * @return boolean TRUE if the class is transient, FALSE otherwise
+         */
+        public function isTransient($class_name)
+        {
+            return (
+                   $class_name == __NAMESPACE__ . '\Model'
+                || !method_exists($class_name, 'loadMetadata')
+            );
+        }
+
+
+        /**
+         * Loads metadata for a given class
+         *
+         * @access public
+         * @param string $className The class to load metdata for
+         * @param ClassMetadata $metadata The metdata object
+         * @return void
+         */
+        public function loadMetadataForClass($class_name, ClassMetadata $metadata)
+        {
+            $class_name::loadMetadata($metadata);
+        }
+
+
+        /**
+         * Registers a class with the mapping driver
+         *
+         * @access public
+         * @param string $clss_name The class the register
+         * @return void
+         */
+        public function registerClass($class_name)
+        {
+            $this->classNames[] = $class_name;
+        }
     }
 }

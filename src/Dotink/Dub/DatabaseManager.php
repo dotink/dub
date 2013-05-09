@@ -1,9 +1,11 @@
 <?php namespace Dotink\Dub
 {
 	use ArrayObject;
+	use Dotink\Flourish;
 	use Doctrine\Common\Cache;
 	use Doctrine\ORM\EntityManager;
 	use Doctrine\ORM\Configuration;
+	use Doctrine\ORM\UnitOfWork;
 	use Doctrine\ORM\Tools\SchemaTool;
 
 	class DatabaseManager extends ArrayObject
@@ -57,6 +59,8 @@
 		 */
 		public function createSchema($database, $classes = array())
 		{
+			$this->validateDatabase($database);
+
 			settype($classes, 'array');
 
 			$meta_data   = array();
@@ -79,6 +83,8 @@
 		 */
 		public function updateSchema($database, $classes = array())
 		{
+			$this->validateDatabase($database);
+
 			settype($classes, 'array');
 
 			$meta_data   = array();
@@ -99,14 +105,82 @@
 		/**
 		 *
 		 */
-		public function map($class, $database)
+		public function isDetached($database, Model $entity)
 		{
+			$this->validateDatabase($database);
+
+			$state = $this[$database]->getUnitOfWork()->getEntityState($entity);
+
+			return $state == UnitOfWork::STATE_DETACHED;
+		}
+
+
+		/**
+		 *
+		 */
+		public function isManaged($database, Model $entity)
+		{
+			$this->validateDatabase($database);
+
+			$state = $this[$database]->getUnitOfWork()->getEntityState($entity);
+
+			return $state == UnitOfWork::STATE_MANAGED;
+		}
+
+
+		/**
+		 *
+		 */
+		public function isNew($database, Model $entity)
+		{
+			$this->validateDatabase($database);
+
+			$state = $this[$database]->getUnitOfWork()->getEntityState($entity);
+
+			return $state == UnitOfWork::STATE_NEW;
+		}
+
+
+		/**
+		 *
+		 */
+		public function isRemoved($database, Model $entity)
+		{
+			$this->validateDatabase($database);
+
+			$state = $this[$database]->getUnitOfWork()->getEntityState($entity);
+
+			return $state == UnitOfWork::STATE_REMOVED;
+		}
+
+
+		/**
+		 *
+		 */
+		public function map($database, $class)
+		{
+			$this->validateDatabase($database);
+
 			if (!isset($this->map[$database])) {
 				$this->map[$database] = array();
 			}
 
 			if (array_search($class, $this->map[$database]) === FALSE) {
 				$this->map[$database][] = $class;
+			}
+		}
+
+
+		/**
+		 *
+		 */
+		private function validateDatabase($database)
+		{
+			if (!isset($this[$database])) {
+				throw new Flourish\ProgrammerException(
+					'Database %s is not registered with the database manager',
+					$database
+				);
 			}
 		}
 	}

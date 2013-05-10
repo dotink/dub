@@ -9,18 +9,9 @@
 
 	class DatabaseManager extends ArrayObject
 	{
-		static private $developmentMode = FALSE;
+		private $developmentMode = FALSE;
 
 		private $map = array();
-
-
-		/**
-		 *
-		 */
-		static public function setDevelopmentMode()
-		{
-			self::$developmentMode = TRUE;
-		}
 
 
 		/**
@@ -29,7 +20,7 @@
 		public function add($alias, Array $connection, $proxy_path = NULL)
 		{
 			$config = new Configuration();
-			$cache  = self::$developmentMode
+			$cache  = $this->developmentMode
 				? new Cache\ArrayCache()
 				: new Cache\ApcCache();
 
@@ -43,7 +34,7 @@
 
 			$config->setMetadataDriverImpl(new Driver());
 
-			if (self::$developmentMode) {
+			if ($this->developmentMode) {
 				$config->setAutoGenerateProxyClasses(TRUE);
 			} else {
 				$config->setAutoGenerateProxyClasses(FALSE);
@@ -190,6 +181,15 @@
 			}
 
 			return $data;
+		}
+
+
+		/**
+		 *
+		 */
+		public function setDevelopmentMode()
+		{
+			$this->developmentMode = TRUE;
 		}
 
 

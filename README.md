@@ -125,3 +125,26 @@ Or, similar to storing:
 ```php
 $user->remove($database['default']);
 ```
+
+### Validation
+
+Validation is being added to the base Model class based on configuration.  Models will have the validation logic called whenever they are persisted or updated, so you don't need to call anything extra.  Currently Dub supports validating:
+
+- Non-nullable fields are not NULL
+- String fields with a specified length do not exceed that length
+
+#### Failed Validation
+
+If validation fails a `Dotink\Dub\ValidationException` will be thrown.  You can wrap `store()` calls with try/catch blocks and get a list of validation errors organized by field using the `fetchValidationMessages()` method:
+
+```php
+try {
+	$user->store($database['default']);
+
+} catch (Dotink\Dub\ValidationException) {
+	printf(
+		'Invalid fields: %s',
+		join(', ', array_keys($user->fetchValidationMessages()))
+	);
+}
+```

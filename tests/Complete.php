@@ -88,8 +88,6 @@
 					-> with   ($shared->databases['default'])
 					-> equals (TRUE)
 				;
-
-				sleep(5);
 			},
 
 			'Store NULL on non-Nullable' => function($data, $shared) {
@@ -130,10 +128,18 @@
 			},
 */
 			'Read Model' => function($data, $shared) {
+
+				//
+				// We previously stored an entity, now we want to sleep 5 seconds and call it
+				// back to see where it's date created field is
+				//
+
+				sleep(5);
+
 				$user = $shared->databases['default']->find('Dotink\Lab\User', 1);
 
 				reject($user->getDateCreated()->format('U'))
-					-> is (GTE, time() - 5)
+					-> is (GT, time() - 5)
 				;
 
 				assert('Dotink\Lab\User::$name')
@@ -147,6 +153,8 @@
 
 				$user->setName('Matthew Sahagian');
 				$user->store($shared->databases['default']);
+
+				$shared->databases['default']->flush();
 
 				assert('Dotink\Lab\User::$name')
 					-> using($user)

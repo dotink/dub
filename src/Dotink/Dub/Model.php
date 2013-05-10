@@ -45,7 +45,7 @@
 		/**
 		 *
 		 */
-		final public static function configure($class, Array $config)
+		final static public function configure($class, Array $config)
 		{
 			self::$configs[$class] = $config;
 		}
@@ -54,7 +54,7 @@
 		/**
 		 *
 		 */
-		final public static function dynamicLoader($class)
+		final static public function dynamicLoader($class)
 		{
 			if (isset(self::$configs[$class])) {
 				$class_parts = explode('\\', $class);
@@ -86,7 +86,7 @@
 		/**
 		 *
 		 */
-		final public static function loadMetadata(ClassMetadata $metadata)
+		final static public function loadMetadata(ClassMetadata $metadata)
 		{
 			$class = get_called_class();
 
@@ -239,6 +239,45 @@
 		/**
 		 *
 		 */
+		static private function addValidationMessage($entity, $field, $message)
+		{
+			if (!isset($entity->validationMessages[$field])) {
+				$entity->validationMessages[$field] = array();
+			}
+
+			$entity->validationMessages[$field][] = $message;
+		}
+
+
+		/**
+		 *
+		 */
+		static private function validateIsNotNull($entity, $field)
+		{
+			if ($entity->$field === NULL) {
+				self::addValidationMessage($entity, $field, Flourish\Text::create(
+					'Cannot be left empty'
+				)->compose(NULL));
+			}
+		}
+
+
+		/**
+		 *
+		 */
+		static private function validateStringLength($entity, $field, $length)
+		{
+			if (Flourish\UTF8::len($entity->$field) > $length) {
+				self::addValidationMessage($entity, $field, Flourish\Text::create(
+					'Cannot exceed %s characters'
+				)->compose(NULL, 30));
+			}
+		}
+
+
+		/**
+		 *
+		 */
 		public function __call($method, $args)
 		{
 			$class    = get_class($this);
@@ -282,7 +321,7 @@
 		/**
 		 *
 		 */
-		final public function fetchValidationMessages()
+		public function fetchValidationMessages()
 		{
 			return $this->validationMessages;
 		}
@@ -429,12 +468,12 @@
 
 			foreach ($fields_config as $field => $config) {
 				if (isset($config['nullable']) && !$config['nullable']) {
-					$this->validateIsNotNull($field);
+					self::validateIsNotNull($this, $field);
 				}
 
 				if (!isset($config['type']) || $config['type'] == 'string') {
 					if (isset($config['length'])) {
-						$this->validateStringLength($field, $config['length']);
+						self::validateStringLength($this, $field, $config['length']);
 					}
 				}
 			}
@@ -444,45 +483,6 @@
 					'Could not validate entity of type %s',
 					$class
 				));
-			}
-		}
-
-
-		/**
-		 *
-		 */
-		private function addValidationMessage($field, $message)
-		{
-			if (!isset($this->validationMessages[$field])) {
-				$this->validationMessages[$field] = array();
-			}
-
-			$this->validationMessages[$field][] = $message;
-		}
-
-
-		/**
-		 *
-		 */
-		private function validateIsNotNull($field)
-		{
-			if ($this->$field === NULL) {
-				$this->addValidationMessage($field, Flourish\Text::create(
-					'Cannot be left empty'
-				)->compose(NULL));
-			}
-		}
-
-
-		/**
-		 *
-		 */
-		private function validateStringLength($field, $length)
-		{
-			if (Flourish\UTF8::len($this->$field) > $length) {
-				$this->addValidationMessage($field, Flourish\Text::create(
-					'Cannot exceed %s characters'
-				)->compose(NULL, 30));
 			}
 		}
 	}

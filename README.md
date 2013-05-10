@@ -19,6 +19,8 @@ Dub is is a set of classes designed to ease Doctrine 2 development.  It uses sim
 }
 ```
 
+A Dub model should extend `Dotink\Dub\Model`.  All `protected` properties on a model will be considered fields and be given setters and getters.
+
 ### Configuring a Model
 
 ```php
@@ -30,11 +32,11 @@ Model::configure('Dotink\Test\User', [
 ]);
 ```
 
-Mapping it to a different repository/table:
+Fields which are left unconfigured recieve the default type `string` with no additional constraints.  By default, a class will map to a repository matching an undercored short name.  So, `Dotink\Test\BlogArticle` would map to `blog_articles` repo.  If you need to map to a different repository you can set it in the configuration:
 
 ```php
-Model::configure('Dotink\Test\User', [
-	'repo' => 'Users'
+Model::configure('Dotink\Test\BlogArticle', [
+	'repo' => 'Articles'
 	'pkey' => 'id',
 	'fields' => [
 		'id' => ['type' => 'serial']

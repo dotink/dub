@@ -14,6 +14,13 @@
 				'path' => $shared->testDB
 			]);
 
+			$shared->databases->add('rummage', [
+				'driver' => 'pdo_pgsql',
+				'host'   => 'localhost',
+				'user'   => 'postgres',
+				'dbname' => 'rummage'
+			]);
+
 			spl_autoload_register('Dotink\Dub\Model::dynamicLoader');
 
 			Model::configure('Dotink\Lab\User', [
@@ -28,23 +35,11 @@
 					'dateCreated' => 'DateTime'
 				]
 			]);
-
-/*
-			class User extends Model
-			{
-				protected $id = NULL;
-				protected $name = NULL;
-				protected $emailAddress = NULL;
-				protected $dateCreated = NULL;
-				public function __construct()
-				{
-					$this->dateCreated = new \DateTime();
-				}
-			}
-*/
 		},
 
 		'tests' => [
+
+
 			'Create Schema' => function($data, $shared) {
 				$shared->databases->map('default', 'Dotink\Lab\User');
 				$shared->databases->createSchema('default');
@@ -181,6 +176,29 @@
 					-> equals (TRUE)
 				;
 			},
+
+
+/*
+			'Schema Reflection' => function($data, $shared) {
+				$config = var_export($shared->databases->reflectSchema('rummage', 'collections'), TRUE);
+				$config = preg_replace('#=>\s*array \(#', '=> [', $config);
+				$config = preg_replace('#\),#', '],', $config);
+				$config = preg_replace('#,(\s*)\]#', '$1]', $config);
+				$config = preg_replace('#\d+ => #', '', $config);
+				$config = preg_replace('#\[\s+\]#', '[]', $config);
+				$config = str_replace('  ', "\t", $config);
+
+				Model::configure('Collection', $shared->databases->reflectSchema('rummage', 'collections'));
+
+				$collection = new \Collection();
+				$collection->setUri('http://www.sdffuck.com/');
+				$collection->store($shared->databases['rummage']);
+
+				$shared->databases['rummage']->flush();
+
+				echo $config;
+			}
+*/
 		],
 
 		'cleanup' => function($data, $shared) {

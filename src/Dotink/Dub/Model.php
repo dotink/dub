@@ -39,6 +39,15 @@
 		/**
 		 *
 		 */
+		static private $generatedTypes = [
+			'serial',
+			'uuid'
+		];
+
+
+		/**
+		 *
+		 */
 		protected $validationMessages = array();
 
 
@@ -467,7 +476,15 @@
 			$fields_config = self::$configs[$class]['fields'];
 
 			foreach ($fields_config as $field => $config) {
-				if (isset($config['nullable']) && !$config['nullable']) {
+				if (!isset($config['type'])) {
+					$config['type'] == 'string';
+				}
+
+				if (!isset($config['nullable'])) {
+					$config['nullable'] == 'true';
+				}
+
+				if (!$config['nullable'] && !in_array($config['type'], self::$generatedTypes)) {
 					self::validateIsNotNull($this, $field);
 				}
 

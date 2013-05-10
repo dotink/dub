@@ -249,6 +249,42 @@
 		/**
 		 *
 		 */
+		public function isDetached(EntityManager $em)
+		{
+			return $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_DETACHED;
+		}
+
+
+		/**
+		 *
+		 */
+		public function isManaged(EntityManager $em)
+		{
+			return $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_MANAGED;
+		}
+
+
+		/**
+		 *
+		 */
+		public function isNew(EntityManager $em)
+		{
+			return $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_NEW;
+		}
+
+
+		/**
+		 *
+		 */
+		public function isRemoved(EntityManager $em)
+		{
+			return $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_REMOVED;
+		}
+
+
+		/**
+		 *
+		 */
 		final public function populate($data)
 		{
 			$class = get_class($this);

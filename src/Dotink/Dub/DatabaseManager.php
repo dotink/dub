@@ -3,7 +3,6 @@
 	use ArrayObject;
 	use Dotink\Flourish;
 	use Doctrine\Common\Cache;
-	use Doctrine\ORM\UnitOfWork;
 	use Doctrine\ORM\EntityManager;
 	use Doctrine\ORM\Configuration;
 	use Doctrine\ORM\Tools\SchemaTool;
@@ -99,58 +98,6 @@
 			}
 
 			$schema_tool->updateSchema($meta_data);
-		}
-
-
-		/**
-		 *
-		 */
-		public function isDetached($database, Model $entity)
-		{
-			$this->validateDatabase($database);
-
-			$state = $this[$database]->getUnitOfWork()->getEntityState($entity);
-
-			return $state == UnitOfWork::STATE_DETACHED;
-		}
-
-
-		/**
-		 *
-		 */
-		public function isManaged($database, Model $entity)
-		{
-			$this->validateDatabase($database);
-
-			$state = $this[$database]->getUnitOfWork()->getEntityState($entity);
-
-			return $state == UnitOfWork::STATE_MANAGED;
-		}
-
-
-		/**
-		 *
-		 */
-		public function isNew($database, Model $entity)
-		{
-			$this->validateDatabase($database);
-
-			$state = $this[$database]->getUnitOfWork()->getEntityState($entity);
-
-			return $state == UnitOfWork::STATE_NEW;
-		}
-
-
-		/**
-		 *
-		 */
-		public function isRemoved($database, Model $entity)
-		{
-			$this->validateDatabase($database);
-
-			$state = $this[$database]->getUnitOfWork()->getEntityState($entity);
-
-			return $state == UnitOfWork::STATE_REMOVED;
 		}
 
 

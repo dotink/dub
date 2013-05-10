@@ -52,8 +52,10 @@
 					-> equals('Matthew J. Sahagian')
 				;
 
-				assert($shared->databases->isNew('default', $user))
-					-> equals(TRUE)
+				assert('Dotink\Lab\User::isNew')
+					-> using  ($user)
+					-> with   ($shared->databases['default'])
+					-> equals (TRUE)
 				;
 			},
 
@@ -74,8 +76,10 @@
 
 				$shared->databases['default']->flush();
 
-				assert($shared->databases->isManaged('default', $user))
-					-> equals(TRUE)
+				assert('Dotink\Lab\User::isManaged')
+					-> using  ($user)
+					-> with   ($shared->databases['default'])
+					-> equals (TRUE)
 				;
 			},
 
@@ -135,14 +139,18 @@
 
 				$user->remove($shared->databases['default']);
 
-				assert($shared->databases->isRemoved('default', $user))
-					-> equals(TRUE)
+				assert('Dotink\Lab\User::isRemoved')
+					-> using  ($user)
+					-> with   ($shared->databases['default'])
+					-> equals (TRUE)
 				;
 
 				$shared->databases['default']->flush();
 
-				assert($shared->databases->isNew('default', $user))
-					-> equals(TRUE)
+				assert('Dotink\Lab\User::isNew')
+					-> using  ($user)
+					-> with   ($shared->databases['default'])
+					-> equals (TRUE)
 				;
 			},
 		],

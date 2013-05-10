@@ -1,17 +1,37 @@
 <?php namespace Dotink\Dub
 {
 	use Dotink\Flourish;
+	use Doctrine\ORM\UnitOfWork;
+	use Doctrine\ORM\EntityManager;
 	use Doctrine\ORM\Mapping\ClassMetadata;
+	use Doctrine\ORM\Mapping\Builder\ClassMetadataBuilder;
 
 	/**
 	 *
 	 */
 	abstract class Model
 	{
+		/**
+		 *
+		 */
 		static private $configs = array();
 
+
+		/**
+		 *
+		 */
+		static private $currentEntityManagers = array();
+
+
+		/**
+		 *
+		 */
 		static private $fields = array();
 
+
+		/**
+		 *
+		 */
 		static private $relationshipTypes = [
 			ClassMetadata::ONE_TO_ONE,
 			ClassMetadata::ONE_TO_MANY,
@@ -19,6 +39,11 @@
 			ClassMetadata::MANY_TO_MANY
 		];
 
+
+		/**
+		 *
+		 */
+		protected $validationMessages = array();
 
 
 		/**
@@ -35,7 +60,15 @@
 		 */
 		final public static function loadMetadata(ClassMetadata $metadata)
 		{
-			$class = get_called_class();
+			$class   = get_called_class();
+
+			if ($class == __CLASS__) {
+				$builder = new ClassMetadataBuilder($metadata);
+				$builder->setMappedSuperclass();
+				$builder->addLifecycleEvent('validate', 'prePersist');
+				$builder->addLifecycleEvent('validate', 'preUpdate');
+				return;
+			}
 
 			$metadata->setTableName(self::fetchRepositoryName($class));
 
@@ -64,17 +97,10 @@
 					}
 
 				} else {
-
 					if ($field_map['type'] == 'serial') {
 						$field_map['type'] = 'integer';
 
 						$metadata->setIdGeneratorType(ClassMetadata::GENERATOR_TYPE_AUTO);
-
-						/*
-					     *     'allocationSize' => 20,
-					     *     'initialValue'   => 1
-					     *     'quoted'         => 1
-						 */
 					}
 
 					$metadata->mapField($field_map);
@@ -82,7 +108,7 @@
 			}
 
 			if (is_callable([$class, 'configureMetadata'])) {
-				call_user_func([$class, 'configureMetadata'], $metadata);
+				call_user_func([$class, 'configureMetadata'], new ClassMetadataBuilder($metadata));
 			}
 		}
 
@@ -207,6 +233,152 @@
 						$action
 					);
 					break;
+			}
+		}
+
+
+		/**
+		 *
+		 */
+		final public function fetchValidationMessages()
+		{
+			return $this->validationMessages;
+		}
+
+
+		/**
+		 *
+		 */
+		final public function populate($data)
+		{
+			$class = get_class($this);
+
+			foreach (self::fetchFields($class) as $field) {
+				$data_name = Flourish\Text::create($field)
+					-> underscorize()
+					-> compose(NULL)
+				;
+
+				if (isset($data[$data_name])) {
+					$method = 'set' . Flourish\Text::create($field)
+						-> camelize(TRUE)
+						-> compose(NULL)
+					;
+
+					$this->$method($data[$data_name]);
+				}
+			}
+		}
+
+
+		/**
+		 *
+		 */
+		final public function remove(EntityManager $em)
+		{
+			$class = get_class($this);
+			$state = $em->getUnitOfWork()->getEntityState($this);
+
+			if ($state == UnitOfWork::STATE_MANAGED) {
+				self::$currentEntityManagers[$class] = $em;
+				$em->remove($this);
+				self::$currentEntityManagers[$class] = NULL;
+			}
+		}
+
+
+		/**
+		 *
+		 */
+		final public function store(EntityManager $em = NULL)
+		{
+			$class = get_class($this);
+			$state = $em->getUnitOfWork()->getEntityState($this);
+
+			if (in_array($state, [UnitOfWork::STATE_NEW, UnitOfWork::STATE_REMOVED])) {
+				self::$currentEntityManagers[$class] = $em;
+				$em->persist($this);
+				self::$currentEntityManagers[$class] = NULL;
+			} elseif ($state == UnitOfWork::STATE_MANAGED) {
+				self::$currentEntityManagers[$class] = $em;
+				$em->update($this);
+				self::$currentEntityManagers[$class] = NULL;
+			}
+		}
+
+
+		/**
+		 *
+		 */
+		final public function validate()
+		{
+			$class = get_class($this);
+			$em    = isset(self::$currentEntityManagers[$class])
+				? self::$currentEntityManagers[$class]
+				: NULL;
+
+			if (!isset(self::$configs[$class]['fields'])) {
+				return;
+			}
+
+			$fields_config = self::$configs[$class]['fields'];
+
+			foreach ($fields_config as $field => $config) {
+				if (isset($config['nullable']) && !$config['nullable']) {
+					$this->validateIsNotNull($field);
+				}
+
+				if (!isset($config['type']) || $config['type'] == 'string') {
+					if (isset($config['length'])) {
+						$this->validateStringLength($field, $config['length']);
+					}
+				}
+			}
+
+			if (count($this->validationMessages)) {
+				throw new ValidationException(sprintf(
+					'Could not validate entity of type %s',
+					$class
+				));
+			}
+		}
+
+
+		/**
+		 *
+		 */
+		private function addValidationMessage($field, $message)
+		{
+			if (!isset($this->validationMessages[$field])) {
+				$this->validationMessages[$field] = array();
+			}
+
+			$this->validationMessages[$field][] = $message;
+		}
+
+
+		/**
+		 *
+		 */
+		private function validateIsNotNull($field)
+		{
+			if ($this->$field === NULL) {
+				$this->addValidationMessage($field, Flourish\Text::create(
+					'Cannot be left empty'
+				)->compose(NULL));
+			}
+		}
+
+
+		/**
+		 *
+		 */
+		private function validateStringLength($field, $length)
+		{
+			if (Flourish\UTF8::len($this->$field) > $length) {
+				$this->addValidationMessage($field, Flourish\Text::create(
+					'Cannot exceed %s characters'
+				)->compose(NULL, 30));
 			}
 		}
 	}

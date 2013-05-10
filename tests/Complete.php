@@ -63,31 +63,42 @@
 				$user->setEmailAddress('info@dotink.org');
 
 				$shared->databases['default']->persist($user);
+
+				$user2 = new User();
+				$user2->populate([
+					'name'          => 'Jane Doe',
+					'email_address' => 'info@example.com'
+				]);
+
+				$user2->store($shared->databases['default']);
+
 				$shared->databases['default']->flush();
 
 				assert($shared->databases->isManaged('default', $user))
 					-> equals(TRUE)
 				;
-
 			},
 
 			'Store NULL on non-Nullable' => function($data, $shared) {
-				assert(function() use ($shared) {
+				$user = new User();
+				$user->setName('John Smith');
+
+				assert(function() use ($shared, $user) {
 
 					//
 					// We will attempt to insert a record which violates the nullable
 					// constraint and make sure it throws an exception.
 					//
 
-					$user = new User();
-					$user->setName('John Smith');
-
 					$shared->databases['default']->persist($user);
 					$shared->databases['default']->flush();
 
-				})->throws('Doctrine\DBAL\DBALException');
-			},
+				})->throws('Dotink\Dub\ValidationException');
 
+				assert($user->fetchValidationMessages())
+					-> has ('emailAddress');
+			},
+/*
 			'Store Non-Unique' => function($data, $shared) {
 				assert(function() use ($shared) {
 
@@ -97,15 +108,14 @@
 					//
 
 					$user = new User();
-					$user->setName('John Smith');
-					$user->setEmailAddress('info@dotink.org');
+					$user->setEmailAddress('info@example.com');
 
 					$shared->databases['default']->persist($user);
 					$shared->databases['default']->flush();
 
 				})->throws('Doctrine\ORM\ORMException');
 			},
-
+*/
 			'Read Model' => function($data, $shared) {
 				$user = $shared->databases['default']->find('Dotink\Lab\User', 1);
 
@@ -118,7 +128,23 @@
 					-> using($user)
 					-> isInstanceOf('DateTime')
 				;
-			}
+			},
+
+			'Delete Model' => function($data, $shared) {
+				$user = $shared->databases['default']->find('Dotink\Lab\User', 1);
+
+				$user->remove($shared->databases['default']);
+
+				assert($shared->databases->isRemoved('default', $user))
+					-> equals(TRUE)
+				;
+
+				$shared->databases['default']->flush();
+
+				assert($shared->databases->isNew('default', $user))
+					-> equals(TRUE)
+				;
+			},
 		],
 
 		'cleanup' => function($data, $shared) {

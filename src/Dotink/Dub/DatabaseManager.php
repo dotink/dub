@@ -3,9 +3,9 @@
 	use ArrayObject;
 	use Dotink\Flourish;
 	use Doctrine\Common\Cache;
+	use Doctrine\ORM\UnitOfWork;
 	use Doctrine\ORM\EntityManager;
 	use Doctrine\ORM\Configuration;
-	use Doctrine\ORM\UnitOfWork;
 	use Doctrine\ORM\Tools\SchemaTool;
 
 	class DatabaseManager extends ArrayObject

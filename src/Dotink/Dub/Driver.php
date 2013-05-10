@@ -49,10 +49,7 @@
          */
         public function isTransient($class_name)
         {
-            return (
-                   $class_name == __NAMESPACE__ . '\Model'
-                || !method_exists($class_name, 'loadMetadata')
-            );
+            return ! method_exists($class_name, 'loadMetadata');
         }
 
 

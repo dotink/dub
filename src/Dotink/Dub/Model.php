@@ -481,7 +481,7 @@
 				}
 
 				if (!isset($config['nullable'])) {
-					$config['nullable'] == 'true';
+					$config['nullable'] = 'true';
 				}
 
 				if (!$config['nullable'] && !in_array($config['type'], self::$generatedTypes)) {

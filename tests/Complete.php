@@ -14,27 +14,34 @@
 				'path' => $shared->testDB
 			]);
 
+			spl_autoload_register('Dotink\Dub\Model::dynamicLoader');
+
 			Model::configure('Dotink\Lab\User', [
 				'pkey' => 'id',
 				'fields' => [
 					'id'           => ['type' => 'serial'],
-					'emailAddress' => ['nullable' => FALSE, 'unique' => TRUE],
+					'name'         => ['type' => 'string'],
+					'emailAddress' => ['type' => 'string', 'nullable' => FALSE, 'unique' => TRUE],
 					'dateCreated'  => ['type' => 'datetime']
+				],
+				'defaults' => [
+					'dateCreated' => 'DateTime'
 				]
 			]);
 
+/*
 			class User extends Model
 			{
 				protected $id = NULL;
 				protected $name = NULL;
 				protected $emailAddress = NULL;
 				protected $dateCreated = NULL;
-
 				public function __construct()
 				{
 					$this->dateCreated = new \DateTime();
 				}
 			}
+*/
 		},
 
 		'tests' => [
@@ -81,6 +88,8 @@
 					-> with   ($shared->databases['default'])
 					-> equals (TRUE)
 				;
+
+				sleep(5);
 			},
 
 			'Store NULL on non-Nullable' => function($data, $shared) {
@@ -123,14 +132,25 @@
 			'Read Model' => function($data, $shared) {
 				$user = $shared->databases['default']->find('Dotink\Lab\User', 1);
 
+				reject($user->getDateCreated()->format('U'))
+					-> is (GTE, time() - 5)
+				;
+
 				assert('Dotink\Lab\User::$name')
 					-> using($user)
 					-> equals('Matthew J. Sahagian')
 				;
+			},
 
-				assert('Dotink\Lab\User::$dateCreated')
+			'Update Model' => function($data, $shared) {
+				$user = $shared->databases['default']->find('Dotink\Lab\User', 1);
+
+				$user->setName('Matthew Sahagian');
+				$user->store($shared->databases['default']);
+
+				assert('Dotink\Lab\User::$name')
 					-> using($user)
-					-> isInstanceOf('DateTime')
+					-> equals('Matthew Sahagian')
 				;
 			},
 

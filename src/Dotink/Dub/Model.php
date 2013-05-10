@@ -1,9 +1,11 @@
 <?php namespace Dotink\Dub
 {
 	use Dotink\Flourish;
+	use Doctrine\ORM\Events;
 	use Doctrine\ORM\UnitOfWork;
 	use Doctrine\ORM\EntityManager;
 	use Doctrine\ORM\Mapping\ClassMetadata;
+	use Doctrine\ORM\Event\LifecycleEventArgs;
 	use Doctrine\ORM\Mapping\Builder\ClassMetadataBuilder;
 
 	/**
@@ -15,12 +17,6 @@
 		 *
 		 */
 		static private $configs = array();
-
-
-		/**
-		 *
-		 */
-		static private $currentEntityManagers = array();
 
 
 		/**
@@ -58,15 +54,48 @@
 		/**
 		 *
 		 */
+		final public static function dynamicLoader($class)
+		{
+			if (isset(self::$configs[$class])) {
+				$class_parts = explode('\\', $class);
+				$short_name  = array_pop($class_parts);
+				$namespace   = implode('\\', $class_parts);
+				$fields      = self::fetchFields($class);
+
+				ob_start();
+
+				call_user_func(function($parent) use ($namespace, $short_name, $fields) {
+					?>
+					namespace <?= $namespace ?>
+					{
+						class <?= $short_name ?> extends \<?= $parent ?>
+						{
+							<?php foreach($fields as $field) { ?>
+								protected $<?= $field ?> = NULL;
+							<?php } ?>
+						}
+					}
+					<?php
+				}, __CLASS__);
+
+				eval(ob_get_clean());
+			}
+		}
+
+
+		/**
+		 *
+		 */
 		final public static function loadMetadata(ClassMetadata $metadata)
 		{
-			$class   = get_called_class();
+			$class = get_called_class();
 
 			if ($class == __CLASS__) {
 				$builder = new ClassMetadataBuilder($metadata);
 				$builder->setMappedSuperclass();
-				$builder->addLifecycleEvent('validate', 'prePersist');
-				$builder->addLifecycleEvent('validate', 'preUpdate');
+				$builder->addLifecycleEvent('temper',   Events::prePersist);
+				$builder->addLifecycleEvent('validate', Events::prePersist);
+				$builder->addLifecycleEvent('validate', Events::preUpdate);
 				return;
 			}
 
@@ -116,13 +145,26 @@
 		/**
 		 *
 		 */
-		private static function fetchFields($class)
+		static private function fetchFields($class)
 		{
 			if (!isset(self::$fields[$class])) {
-				self::$fields[$class] = array_diff(
-					array_keys(get_class_vars($class)),
-					array_keys(get_class_vars(__CLASS__))
-				);
+				$configured_fields = isset(self::$configs[$class]['fields'])
+					? array_keys(self::$configs[$class]['fields'])
+					: array();
+
+				if (class_exists($class, FALSE)) {
+					$concrete_fields = array_diff(
+						array_keys(get_class_vars($class)),
+						array_keys(get_class_vars(__CLASS__))
+					);
+				} else {
+					$concrete_fields = array();
+				}
+
+				self::$fields[$class] = array_unique(array_merge(
+					$configured_fields,
+					$concrete_fields
+				));
 			}
 
 			return self::$fields[$class];
@@ -132,7 +174,7 @@
 		/**
 		 *
 		 */
-		private static function fetchFieldMaps($class)
+		static private function fetchFieldMaps($class)
 		{
 			$field_maps = array();
 
@@ -177,7 +219,7 @@
 		/**
 		 *
 		 */
-		private static function fetchRepositoryName($class)
+		 static private function fetchRepositoryName($class)
 		{
 			if (!isset(self::$configs[$class]['repo'])) {
 				$class_parts = explode('\\', $class);
@@ -316,9 +358,7 @@
 			$state = $em->getUnitOfWork()->getEntityState($this);
 
 			if ($state == UnitOfWork::STATE_MANAGED) {
-				self::$currentEntityManagers[$class] = $em;
 				$em->remove($this);
-				self::$currentEntityManagers[$class] = NULL;
 			}
 		}
 
@@ -332,13 +372,7 @@
 			$state = $em->getUnitOfWork()->getEntityState($this);
 
 			if (in_array($state, [UnitOfWork::STATE_NEW, UnitOfWork::STATE_REMOVED])) {
-				self::$currentEntityManagers[$class] = $em;
 				$em->persist($this);
-				self::$currentEntityManagers[$class] = NULL;
-			} elseif ($state == UnitOfWork::STATE_MANAGED) {
-				self::$currentEntityManagers[$class] = $em;
-				$em->update($this);
-				self::$currentEntityManagers[$class] = NULL;
 			}
 		}
 
@@ -346,11 +380,45 @@
 		/**
 		 *
 		 */
-		final public function validate()
+		final public function temper()
 		{
 			$class = get_class($this);
-			$em    = isset(self::$currentEntityManagers[$class])
-				? self::$currentEntityManagers[$class]
+
+			if (isset(self::$configs[$class]['defaults'])) {
+				foreach (self::$configs[$class]['defaults'] as $field => $default) {
+					if ($this->$field !== NULL) {
+						continue;
+					}
+
+					if (isset(self::$configs[$class]['fields'][$field]['type'])) {
+						switch (self::$configs[$class]['fields'][$field]['type']) {
+							case 'date':
+							case 'datetime':
+							case 'time':
+							case 'object':
+								if (class_exists($default)) {
+									$this->$field = new $default();
+								} else {
+									$this->$field = $default;
+								}
+								break;
+							default:
+								$this->$field = $default;
+						}
+					}
+				}
+			}
+		}
+
+
+		/**
+		 *
+		 */
+		final public function validate(LifeCycleEventArgs $e = NULL)
+		{
+			$class   = get_class($this);
+			$manager = isset($e)
+				? $e->getEntityManager()
 				: NULL;
 
 			if (!isset(self::$configs[$class]['fields'])) {

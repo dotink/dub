@@ -56,6 +56,23 @@ printf(
 );
 ```
 
+#### Populating
+
+If you have an array of data from a form or something similar you can populate the model all at once:
+
+```php
+$user->populate($data);
+```
+
+The `populate()` method will transform lower camel case and underscore keys to call the appropriate `set*()` method:
+
+```php
+$user->populate([
+	'name'          => 'John Doe',
+	'email_address' => 'john.d@example.com'
+]);
+```
+
 ### Creating a Database
 
 ```php

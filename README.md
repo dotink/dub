@@ -74,9 +74,37 @@ $databases->add('default', $connection);
 $databases->createSchema('default', ['Dotink\Test\User']);
 ```
 
+You can also map models 1-by-1:
+
+```php
+$databases->map('default', 'Dotink\Test\User');
+$databases->map('default', 'Dotink\Test\Article');
+$databases->map('default', 'Dotink\Test\Contact');
+
+$database->createSchema('default');
+```
+
 ### Persisting a Model
 
 ```php
 $databases['default']->persist($user);
 $databases['default']->flush();
+```
+
+Alternatively you can call `store()` and pass in the entity manager to persist or update depending on the current state:
+
+```php
+$user->store($databases['default']);
+```
+
+### Removing a Model
+
+```php
+$database['default']->remove($user);
+```
+
+Or, similar to storing:
+
+```php
+$user->remove($database['default']);
 ```

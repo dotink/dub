@@ -32,19 +32,20 @@
 		},
 
 		'tests' => [
+
+			'Create Schema' => function($data, $shared) {
+				$shared->databases->map('default', 'Dotink\Lab\User');
+				$shared->databases->createSchema('default');
+			},
+
 			'Basic Model' => function($data, $shared) {
-				$user = Model::create('Dotink\Lab\User');
+				$user = new User();
 				$user->setName('Matthew J. Sahagian');
 
 				assert('Dotink\Lab\User::$name')
 					-> using($user)
 					-> equals('Matthew J. Sahagian')
 				;
-			},
-
-			'Create Schema' => function($data, $shared) {
-				$shared->databases->map('default', 'Dotink\Lab\User');
-				$shared->databases->createSchema('default');
 			},
 
 			'Get Model Status' => function($data, $shared) {

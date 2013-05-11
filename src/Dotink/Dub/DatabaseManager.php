@@ -100,6 +100,14 @@
 
 			$schema_tool = new SchemaTool($this[$database]);
 
+			if (!count($classes) && isset($this->map[$database])) {
+				$classes = $this->map[$database];
+			}
+
+			foreach ($classes as $class) {
+				Model::create($class, TRUE);
+			}
+
 			$schema_tool->createSchema($this->fetchMetaData($database, $classes));
 		}
 

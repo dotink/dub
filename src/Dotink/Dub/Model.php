@@ -32,7 +32,7 @@
 		/**
 		 *
 		 */
-		final static public function create($class)
+		final static public function create($class, $scaffold_only = FALSE)
 		{
 			if (class_exists($class)) {
 				if (!is_subclass_of($class, __CLASS__)) {
@@ -43,7 +43,7 @@
 				}
 
 			} else {
-				$config = ModelConfiguration::load($class, 'create object');
+				$config = ModelConfiguration::load($class, 'create model');
 
 				ob_start();
 				call_user_func(function($parent) use ($config) {
@@ -63,7 +63,9 @@
 				eval(ob_get_clean());
 			}
 
-			return new $class();
+			return !$scaffold_only
+				? new $class()
+				: NULL;
 		}
 
 

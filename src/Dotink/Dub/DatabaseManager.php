@@ -19,6 +19,21 @@
 
 
 		/**
+		 *
+		 */
+		private $configs = array();
+
+
+		/**
+		 *
+		 */
+		private $connections = array();
+
+
+
+
+
+		/**
 		 * Whether or not this database manager is in development mode
 		 *
 		 * @access private
@@ -40,12 +55,12 @@
 		 * Adds a new connection under an initial alias
 		 *
 		 * @access public
-		 * @param string $alias The alias for the connection
+		 * @param string $name The database name (primary alias)
 		 * @param array $connection The connection parameters (see doctrine 2)
 		 * @param string $proxy_path The path to use for proxies, if NULL system temp dir is used
 		 * @return void
 		 */
-		public function add($alias, Array $connection, $proxy_path = NULL)
+		public function add($name, Array $connection, $proxy_path = NULL)
 		{
 			$config = new Configuration();
 			$cache  = $this->developmentMode
@@ -68,7 +83,10 @@
 				$config->setAutoGenerateProxyClasses(FALSE);
 			}
 
-			$this->offsetSet($alias, EntityManager::create($connection, $config));
+			$this->offsetSet($name, EntityManager::create($connection, $config));
+
+			$this->connections[$name] = $connection;
+			$this->configs[$name]     = $config;
 		}
 
 
@@ -137,92 +155,18 @@
 		/**
 		 *
 		 */
-		public function reflectSchema($database, $repo = NULL)
+		public function reset($database)
 		{
 			$this->validateDatabase($database);
 
-			$connection = $this[$database]->getConnection();
-			$schema     = $connection->getSchemaManager();
-			$data       = array();
+			if ($this->offsetExists($database)) {
+				$this->offsetUnset($database);
 
-			if (!$repo) {
-				foreach ($schema->listTables() as $table) {
-					$repo        = $table->getname();
-					$data[$repo] = $this->reflectSchema($database, $repo);
-				}
+				$connection = $this->connections[$database];
+				$config     = $this->configs[$database];
 
-			} else {
-				$columns = $schema->listTableColumns($repo);
-				$indexes = $schema->listTableIndexes($repo);
-
-				$data['repo']     = $repo;
-				$data['fields']   = array();
-				$data['defaults'] = array();
-
-				foreach ($columns as $column) {
-					$name     =  $column->getName();
-					$type     =  $column->getType();
-					$default  =  $column->getDefault();
-					$length   =  $column->getLength();
-					$scale    =  $column->getScale();
-					$nullable = !$column->getNotNull();
-
-					if (strpos($name, '_') !== FALSE) {
-						$field = Flourish\Text::create($name)->camelize()->compose();
-					} else {
-						$field = $name;
-					}
-
-					$data['fields'][$field] = ['type' => $type->getName()];
-
-					switch (get_class($type)) {
-						case 'Doctrine\DBAL\Types\IntegerType':
-							if ($column->getAutoIncrement()) {
-								$data['fields'][$field]['type'] = 'serial';
-							}
-							break;
-
-						case 'Doctrine\DBAL\Types\StringType':
-							if ($length) {
-								$data['fields'][$field]['length'] = $length;
-							}
-							break;
-						case 'Doctrine\DBAL\Types\DateTimeType':
-							if ($default) {
-								if ($default == 'now()' || $default = 'CURRENT_DATETIME') {
-									$data['defaults'][$field] = 'DateTime';
-								}
-							}
-							break;
-					}
-
-					if (!$nullable) {
-						$data['fields'][$field]['nullable'] = FALSE;
-					}
-
-					if (!isset($data['defaults'][$field])) {
-						$data['defaults'][$field] = $default;
-					}
-				}
-
-				foreach ($indexes as $index) {
-					if ($index->isPrimary()) {
-						$data['pkey'] = array();
-
-						foreach ($index->getColumns() as $column) {
-							if (strpos($column, '_') !== FALSE) {
-								$field = Flourish\Text::create($column)->camelize()->compose();
-							} else {
-								$field = $column;
-							}
-
-							$data['pkey'][] = $field;
-						}
-					}
-				}
+				$this->offsetSet($database, EntityManager::create($connection, $config));
 			}
-
-			return $data;
 		}
 
 

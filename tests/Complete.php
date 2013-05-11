@@ -14,13 +14,6 @@
 				'path' => $shared->testDB
 			]);
 
-			$shared->databases->add('rummage', [
-				'driver' => 'pdo_pgsql',
-				'host'   => 'localhost',
-				'user'   => 'postgres',
-				'dbname' => 'rummage'
-			]);
-
 			ModelConfiguration::store('User', [
 				'fields' => [
 					'id'           => ['type' => 'serial'],
@@ -182,31 +175,20 @@
 					-> equals (TRUE)
 				;
 			},
-
-
 /*
 			'Schema Reflection' => function($data, $shared) {
-				$config = var_export($shared->databases->reflectSchema('rummage', 'collections'), TRUE);
-				$config = preg_replace('#=>\s*array \(#', '=> [', $config);
-				$config = preg_replace('#\),#', '],', $config);
-				$config = preg_replace('#,(\s*)\]#', '$1]', $config);
-				$config = preg_replace('#\d+ => #', '', $config);
-				$config = preg_replace('#\[\s+\]#', '[]', $config);
-				$config = str_replace('  ', "\t", $config);
+				$shared->databases->reset('default');
 
-				Model::configure('Collection', $shared->databases->reflectSchema('rummage', 'collections'));
+				ModelConfiguration::reflect('Person', $shared->databases['default']);
 
-				$collection = new \Collection();
-				$collection->setUri('http://www.sdffuck.com/');
-				$collection->store($shared->databases['rummage']);
+				$person = Model::create('Person');
+				$person->setName('John Doe');
+				$person->setEmailAddress('person@example.com');
 
-				$shared->databases['rummage']->flush();
-
-				echo $config;
+				$shared->databases['default']->flush();
 			}
-*/
 		],
-
+*/
 		'cleanup' => function($data, $shared) {
 			unlink($shared->testDB);
 		}

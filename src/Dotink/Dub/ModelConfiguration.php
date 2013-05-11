@@ -1,6 +1,7 @@
 <?php namespace Dotink\Dub
 {
 	use Dotink\Flourish;
+	use Doctrine\ORM\EntityManager;
 
 	/**
 	 *
@@ -119,6 +120,114 @@
         }
 
 
+        /**
+         *
+         */
+        static public function reflect($class, EntityManager $database, $repo = NULL)
+        {
+			$connection = $database->getConnection();
+			$schema     = $connection->getSchemaManager();
+
+			if (!$repo) {
+				$class_parts = explode('\\', $class);
+				$short_name  = array_pop($class_parts);
+				$repo        = self::makeRepositoryName($short_name);
+			}
+
+			$columns = $schema->listTableColumns($repo);
+			$indexes = $schema->listTableIndexes($repo);
+			$config  = [
+				'repo'    => $repo,
+				'fields'  => array(),
+				'primary' => array(),
+				'unique'  => array(),
+				'indexes' => array()
+			];
+
+			foreach ($columns as $column) {
+				$name     =  $column->getName();
+				$type     =  $column->getType();
+				$default  =  $column->getDefault();
+				$length   =  $column->getLength();
+				$scale    =  $column->getScale();
+				$nullable = !$column->getNotNull();
+				$field    = self::makeField($name);
+
+				$config['fields'][$field]['type'] = $type->getName();
+
+				//
+				// Add or modify special types/options
+				//
+
+				switch ($config['fields'][$field]['type']) {
+					case 'integer':
+						if ($column->getAutoIncrement()) {
+							$config['fields'][$field]['type'] = 'serial';
+						}
+						break;
+
+					case 'string':
+						if ($length) {
+							$config['fields'][$field]['length'] = $length;
+						}
+						break;
+				}
+
+				//
+				// Configure nullable
+				//
+
+				if (!$nullable) {
+					$config['fields'][$field]['nullable'] = FALSE;
+				}
+
+				//
+				// Add defaults
+				//
+
+				if ($default !== NULL) {
+					$config['fields'][$field]['default'] = $default;
+				}
+
+				switch ($config['fields'][$field]['type']) {
+					case 'datetime':
+						if ($default == 'now()' || $default = 'CURRENT_DATETIME') {
+							$config['fields'][$field]['default'] = '+DateTime()';
+						}
+						break;
+				}
+			}
+
+			//
+			// Set up indexes
+			//
+
+			foreach ($indexes as $index) {
+				var_dump($index);
+				if ($index->isPrimary()) {
+					foreach ($index->getColumns() as $data_name) {
+						$config['primary'][] = self::makeField($data_name);
+					}
+
+				} else {
+					$fields = array();
+
+					foreach ($index->getColumns() as $data_name) {
+						$fields[] = self::makeField($data_name);
+					}
+
+					$container = $index->isUnique() ? 'unique' : 'indexes';
+					$idx_name  = $index->getName();
+
+					$config[$container][$idx_name] = $fields;
+				}
+			}
+
+
+			self::store($class, $config);
+		}
+
+
 		/**
 		 *
 		 */
@@ -127,6 +236,17 @@
 			return Flourish\Text::create($field)
 				-> underscorize()
 				-> compose();
+		}
+
+
+		/**
+		 *
+		 */
+		static protected function makeField($data_name)
+		{
+			return strpos($data_name, '_') !== FALSE
+				? Flourish\Text::create($data_name)->camelize()->compose()
+				: $data_name;
 		}
 
 

@@ -33,21 +33,6 @@ Specifying a type of `serial` will actually map a field to an integer, however, 
 ]
 ```
 
-The keys of the `'fields'` array map to the property names on your model which should be protected.
-
-```php
-'fields' => [
-	'emailAddress' => [ /* field configuration here */ ]
-]
-```
-
-```php
-class User extends Model
-{
-	protected $emailAddress = NULL;
-}
-```
-
 A field with an unspecified type will default to string.  The type definition below is unnecessary:
 
 ```php

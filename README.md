@@ -7,18 +7,17 @@ Dub is is a set of classes designed to ease Doctrine 2 development.  It uses sim
 Models in Dub are configuration driven.
 
 ```php
-<?php namespace Dotink\Dub
-{
-	ModelConfiguration::store('User', [
-		'fields' => [
-			'id'           => ['type' => 'serial', 'nullable' => FALSE],
-			'name'         => ['type' => 'string', 'length' => 64,  'nullable' => FALSE],
-			'emailAddress' => ['type' => 'string', 'length' => 256, 'nullable' => FALSE, 'unique' => TRUE ],
-			'status'       => ['type' => 'string', 'length' => 16,  'nullable' => FALSE]
-		],
-		'primary' => 'id'
-	]);
-}
+namespace Dotink\Dub;
+
+ModelConfiguration::store('User', [
+	'fields' => [
+		'id'           => ['type' => 'serial', 'nullable' => FALSE],
+		'name'         => ['type' => 'string', 'length' => 64,  'nullable' => FALSE],
+		'emailAddress' => ['type' => 'string', 'length' => 256, 'nullable' => FALSE, 'unique'  => TRUE ],
+		'status'       => ['type' => 'string', 'length' => 16,  'nullable' => FALSE, 'default' => 'Active']
+	],
+	'primary' => 'id'
+]);
 ```
 
 #### Configuration Schema

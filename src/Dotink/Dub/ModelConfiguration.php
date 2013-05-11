@@ -203,7 +203,6 @@
 			//
 
 			foreach ($indexes as $index) {
-				var_dump($index);
 				if ($index->isPrimary()) {
 					foreach ($index->getColumns() as $data_name) {
 						$config['primary'][] = self::makeField($data_name);

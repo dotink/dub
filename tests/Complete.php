@@ -175,11 +175,9 @@
 					-> equals (TRUE)
 				;
 			},
-/*
-			'Schema Reflection' => function($data, $shared) {
-				$shared->databases->reset('default');
 
-				ModelConfiguration::reflect('Person', $shared->databases['default']);
+			'Schema Reflection' => function($data, $shared) {
+				ModelConfiguration::reflect('Person', $shared->databases['default'], 'users');
 
 				$person = Model::create('Person');
 				$person->setName('John Doe');
@@ -188,7 +186,7 @@
 				$shared->databases['default']->flush();
 			}
 		],
-*/
+
 		'cleanup' => function($data, $shared) {
 			unlink($shared->testDB);
 		}

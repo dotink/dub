@@ -276,16 +276,11 @@
 		{
 			$config = ModelConfiguration::load(get_class($this), __FUNCTION__);
 
-			foreach ($config->getFields() as $field) {
-				$data_name = $config->getDataName($field);
+			foreach ($data as $data_name => $value) {
+				if ($field  = $config->getField($data_name)) {
+					$method = 'set' . ucfirst($field);
 
-				if (isset($data[$data_name])) {
-					$method = 'set' . Flourish\Text::create($field)
-						-> camelize(TRUE)
-						-> compose(NULL)
-					;
-
-					$this->$method($data[$data_name]);
+					$this->$method($value);
 				}
 			}
 		}

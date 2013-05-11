@@ -1,5 +1,6 @@
 <?php namespace Dotink\Lab
 {
+	use User;
 	use Dotink\Dub\Model;
 	use Dotink\Dub\ModelConfiguration;
 	use Dotink\Dub\DatabaseManager;
@@ -20,7 +21,7 @@
 				'dbname' => 'rummage'
 			]);
 
-			ModelConfiguration::store('Dotink\Lab\User', [
+			ModelConfiguration::store('User', [
 				'fields' => [
 					'id'           => ['type' => 'serial'],
 					'name'         => ['type' => 'string'],
@@ -34,7 +35,7 @@
 		'tests' => [
 
 			'Create Schema' => function($data, $shared) {
-				$shared->databases->map('default', 'Dotink\Lab\User');
+				$shared->databases->map('default', 'User');
 				$shared->databases->createSchema('default');
 			},
 
@@ -42,17 +43,17 @@
 				$user = new User();
 				$user->setName('Matthew J. Sahagian');
 
-				assert('Dotink\Lab\User::$name')
+				assert('User::$name')
 					-> using($user)
 					-> equals('Matthew J. Sahagian')
 				;
 			},
 
 			'Get Model Status' => function($data, $shared) {
-				$user = Model::create('Dotink\Lab\User');
+				$user = Model::create('User');
 				$user->setName('Matthew J. Sahagian');
 
-				assert('Dotink\Lab\User::isNew')
+				assert('User::isNew')
 					-> using  ($user)
 					-> with   ($shared->databases['default'])
 					-> equals (TRUE)
@@ -76,7 +77,7 @@
 
 				$shared->databases['default']->flush();
 
-				assert('Dotink\Lab\User::isManaged')
+				assert('User::isManaged')
 					-> using  ($user)
 					-> with   ($shared->databases['default'])
 					-> equals (TRUE)
@@ -129,38 +130,45 @@
 
 				sleep(5);
 
-				$user = $shared->databases['default']->find('Dotink\Lab\User', 1);
+				$user = $shared->databases['default']->find('User', 1);
 
 				reject($user->getDateCreated()->format('U'))
 					-> is (GT, time() - 5)
 				;
 
-				assert('Dotink\Lab\User::$name')
+				assert('User::$name')
 					-> using($user)
 					-> equals('Matthew J. Sahagian')
+				;
+
+				$user = $shared->databases['default']->find('User', 2);
+
+				assert('User::$name')
+					-> using($user)
+					-> equals('Jane Doe')
 				;
 			},
 
 			'Update Model' => function($data, $shared) {
-				$user = $shared->databases['default']->find('Dotink\Lab\User', 1);
+				$user = $shared->databases['default']->find('User', 1);
 
 				$user->setName('Matthew Sahagian');
 				$user->store($shared->databases['default']);
 
 				$shared->databases['default']->flush();
 
-				assert('Dotink\Lab\User::$name')
+				assert('User::$name')
 					-> using($user)
 					-> equals('Matthew Sahagian')
 				;
 			},
 
 			'Delete Model' => function($data, $shared) {
-				$user = $shared->databases['default']->find('Dotink\Lab\User', 1);
+				$user = $shared->databases['default']->find('User', 1);
 
 				$user->remove($shared->databases['default']);
 
-				assert('Dotink\Lab\User::isRemoved')
+				assert('User::isRemoved')
 					-> using  ($user)
 					-> with   ($shared->databases['default'])
 					-> equals (TRUE)
@@ -168,7 +176,7 @@
 
 				$shared->databases['default']->flush();
 
-				assert('Dotink\Lab\User::isNew')
+				assert('User::isNew')
 					-> using  ($user)
 					-> with   ($shared->databases['default'])
 					-> equals (TRUE)

@@ -14,39 +14,83 @@
          */
         static private $configs = array();
 
+
+		/**
+		 *
+		 */
 		static private $fields = array();
 
+
+		/**
+		 *
+		 */
 		static private $primaries = array();
 
+
+		/**
+		 *
+		 */
 		static private $types = array();
 
+
+		/**
+		 *
+		 */
 		static private $dataNames = array();
 
+
+		/**
+		 *
+		 */
 		static private $options = array();
 
+
+		/**
+		 *
+		 */
 		static private $ukeys = array();
 
+
+		/**
+		 *
+		 */
 		static private $indexes = array();
 
+
+		/**
+		 *
+		 */
 		static private $repositories = array();
 
+
+		/**
+		 *
+		 */
 		static private $nullable = array();
 
+
+		/**
+		 *
+		 */
 		static private $defaults = array();
 
 
+		/**
+		 *
+		 */
 		private $class = NULL;
+
+
+		/**
+		 *
+		 */
 		private $shortName = NULL;
+
+
+		/**
+		 *
+		 */
 		private $namespace = NULL;
-
-
-        /**
-         *
-         */
-        static public function store($class, Array $config)
-        {
-            self::$configs[$class] = new self($class, $config);
-        }
 
 
         /**
@@ -66,6 +110,25 @@
         }
 
 
+        /**
+         *
+         */
+        static public function store($class, Array $config)
+        {
+            self::$configs[$class] = new self($class, $config);
+        }
+
+
+		/**
+		 *
+		 */
+		static protected function makeDataName($field)
+		{
+			return Flourish\Text::create($field)
+				-> underscorize()
+				-> compose();
+		}
+
 
 		/**
 		 *
@@ -78,15 +141,6 @@
 				-> compose();
 		}
 
-		/**
-		 *
-		 */
-		static protected function makeDataName($field)
-		{
-			return Flourish\Text::create($field)
-				-> underscorize()
-				-> compose();
-		}
 
 		/**
 		 *
@@ -184,6 +238,15 @@
 		/**
 		 *
 		 */
+		public function getField($data_name)
+		{
+			return array_search($data_name, self::$dataNames[$this->class]);
+		}
+
+
+		/**
+		 *
+		 */
 		public function getFields()
 		{
 			return self::$fields[$this->class];
@@ -274,6 +337,7 @@
 		{
 			return self::$primaries[$this->class];
 		}
+
 
 		/**
 		 *

@@ -13,27 +13,6 @@
 	 */
 	abstract class Model
 	{
-		/**
-		 *
-		 */
-		static private $configs = array();
-
-
-		/**
-		 *
-		 */
-		static private $fields = array();
-
-
-		/**
-		 *
-		 */
-		static private $relationshipTypes = [
-			ClassMetadata::ONE_TO_ONE,
-			ClassMetadata::ONE_TO_MANY,
-			ClassMetadata::MANY_TO_ONE,
-			ClassMetadata::MANY_TO_MANY
-		];
 
 
 		/**
@@ -50,36 +29,30 @@
 		 */
 		protected $validationMessages = array();
 
-
 		/**
 		 *
 		 */
-		final static public function configure($class, Array $config)
+		final static public function create($class)
 		{
-			self::$configs[$class] = $config;
-		}
+			if (class_exists($class)) {
+				if (!is_subclass_of($class, __CLASS__)) {
+					throw new Flourish\ProgrammerException(
+						'Cannot create non-model class %s',
+						$class
+					);
+				}
 
-
-		/**
-		 *
-		 */
-		final static public function dynamicLoader($class)
-		{
-			if (isset(self::$configs[$class])) {
-				$class_parts = explode('\\', $class);
-				$short_name  = array_pop($class_parts);
-				$namespace   = implode('\\', $class_parts);
-				$fields      = self::fetchFields($class);
+			} else {
+				$config = ModelConfiguration::load($class, 'create object');
 
 				ob_start();
-
-				call_user_func(function($parent) use ($namespace, $short_name, $fields) {
+				call_user_func(function($parent) use ($config) {
 					?>
-					namespace <?= $namespace ?>
+					namespace <?= $config->get('namespace') ?>
 					{
-						class <?= $short_name ?> extends \<?= $parent ?>
+						class <?= $config->get('shortName') ?> extends \<?= $parent ?>
 						{
-							<?php foreach($fields as $field) { ?>
+							<?php foreach($config->getFields() as $field) { ?>
 								protected $<?= $field ?> = NULL;
 							<?php } ?>
 						}
@@ -89,6 +62,8 @@
 
 				eval(ob_get_clean());
 			}
+
+			return new $class();
 		}
 
 
@@ -97,10 +72,10 @@
 		 */
 		final static public function loadMetadata(ClassMetadata $metadata)
 		{
-			$class = get_called_class();
+			$class   = get_called_class();
+			$builder = new ClassMetadataBuilder($metadata);
 
 			if ($class == __CLASS__) {
-				$builder = new ClassMetadataBuilder($metadata);
 				$builder->setMappedSuperclass();
 				$builder->addLifecycleEvent('temper',   Events::prePersist);
 				$builder->addLifecycleEvent('validate', Events::prePersist);
@@ -108,141 +83,59 @@
 				return;
 			}
 
-			$metadata->setTableName(self::fetchRepositoryName($class));
+			$config = ModelConfiguration::load($class, 'load meta data');
 
-			foreach (self::fetchFieldMaps($class) as $field_map) {
-				if (in_array($field_map['type'], self::$relationshipTypes)) {
-					$type = $field_map['type'];
+			$metadata->setTableName($config->getRepository());
+			$metadata->setIdentifier($config->getPrimary());
 
-					unset($field_map['type']);
+			foreach ($config->getFields() as $field) {
+				$metadata->mapField($config->getFieldMap($field));
 
-					switch ($type) {
+				switch ($config->getType($field)) {
+					case 'serial':
+						$metadata->setIdGeneratorType(ClassMetadata::GENERATOR_TYPE_AUTO);
+						break;
+					case 'uuid':
+
+						break;
+				}
+			}
+
+			foreach ($config->getIndexes() as $index) {
+				$builder->addIndex($config->getIndex($index), $index);
+			}
+
+			foreach ($config->getIndexes('unique') as $index) {
+				$builder->addUniqueConstraint($config->getUKey($index), $index);
+			}
+/*
+			foreach ($config->getReferences() as $reference) {
+				switch ($config->getReferenceType($reference)) {
 						case ClassMetadata::ONE_TO_ONE:
-							$metadata->mapOneToOne($field_map);
+							$metadata->mapOneToOne($config->getReferenceMap($reference));
 							break;
 
 						case ClassMetadata::ONE_TO_MANY:
-							$metadata->mapOneToMany($field_map);
+							$metadata->mapOneToMany($config->getReferenceMap($reference));
 							break;
 
 						case ClassMetadata::MANY_TO_ONE:
-							$metadata->mapManyToOne($field_map);
+							$metadata->mapManyToOne($config->getReferenceMap($reference));
 							break;
 
 						case ClassMetadata::MANY_TO_MANY:
-							$metadata->mapManyToMany($field_map);
+							$metadata->mapManyToMany($config->getReferenceMap($reference));
 							break;
-					}
-
-				} else {
-					if ($field_map['type'] == 'serial') {
-						$field_map['type'] = 'integer';
-
-						$metadata->setIdGeneratorType(ClassMetadata::GENERATOR_TYPE_AUTO);
-					}
-
-					$metadata->mapField($field_map);
 				}
 			}
+*/
 
 			if (is_callable([$class, 'configureMetadata'])) {
-				call_user_func([$class, 'configureMetadata'], new ClassMetadataBuilder($metadata));
+				call_user_func([$class, 'configureMetadata'], $builder);
 			}
 		}
 
 
-		/**
-		 *
-		 */
-		static private function fetchFields($class)
-		{
-			if (!isset(self::$fields[$class])) {
-				$configured_fields = isset(self::$configs[$class]['fields'])
-					? array_keys(self::$configs[$class]['fields'])
-					: array();
-
-				if (class_exists($class, FALSE)) {
-					$concrete_fields = array_diff(
-						array_keys(get_class_vars($class)),
-						array_keys(get_class_vars(__CLASS__))
-					);
-				} else {
-					$concrete_fields = array();
-				}
-
-				self::$fields[$class] = array_unique(array_merge(
-					$configured_fields,
-					$concrete_fields
-				));
-			}
-
-			return self::$fields[$class];
-		}
-
-
-		/**
-		 *
-		 */
-		static private function fetchFieldMaps($class)
-		{
-			$field_maps = array();
-
-			foreach (self::fetchFields($class) as $field) {
-				$field_map = isset(self::$configs[$class]['fields'][$field])
-					? self::$configs[$class]['fields'][$field]
-					: array();
-
-				if (!isset($field_map['fieldName'])) {
-					$field_map['fieldName'] = $field;
-				}
-
-				if (!isset($field_map['type'])) {
-					$field_map['type'] = 'string';
-				}
-
-				if (!in_array($field_map['type'], self::$relationshipTypes)) {
-
-					if (!isset($field_map['columnName'])) {
-						$field_map['columnName'] = Flourish\Text::create($field)
-							-> underscorize()
-							-> compose()
-						;
-					}
-
-					if (isset(self::$configs[$class]['pkey'])) {
-						settype(self::$configs[$class]['pkey'], 'array');
-
-						if (in_array($field_map['fieldName'], self::$configs[$class]['pkey'])) {
-							$field_map['id'] = true;
-						}
-					}
-				}
-
-				$field_maps[] = $field_map;
-			}
-
-			return $field_maps;
-		}
-
-
-		/**
-		 *
-		 */
-		 static private function fetchRepositoryName($class)
-		{
-			if (!isset(self::$configs[$class]['repo'])) {
-				$class_parts = explode('\\', $class);
-				$class_name  = end($class_parts);
-				$repo_name   = Flourish\Text::create($class_name)
-					-> underscorize()
-					-> pluralize()
-					-> compose();
-			} else {
-				$repo_name = self::$configs[$class]['repo'];
-			}
-
-			return $repo_name;
-		}
 
 
 		/**
@@ -289,12 +182,14 @@
 		 */
 		public function __call($method, $args)
 		{
-			$class    = get_class($this);
-			$parts    = explode('_', Flourish\Text::create($method)->underscorize()->compose(), 2);
+			$config = ModelConfiguration::load(get_class($this), 'call magic method');
+			$snaked = Flourish\Text::create($method)->underscorize()->compose();
+
+			$parts    = explode('_', $snaked, 2);
 			$action   = reset($parts);
 			$property = lcfirst(substr($method, strlen($action)));
 
-			if (!in_array($property, self::fetchFields($class))) {
+			if (!in_array($property, $config->getFields())) {
 				throw new Flourish\ProgrammerException(
 					'Method %s() called on unknown property %s',
 					$method,
@@ -377,13 +272,10 @@
 		 */
 		final public function populate($data)
 		{
-			$class = get_class($this);
+			$config = ModelConfiguration::load(get_class($this), __FUNCTION__);
 
-			foreach (self::fetchFields($class) as $field) {
-				$data_name = Flourish\Text::create($field)
-					-> underscorize()
-					-> compose(NULL)
-				;
+			foreach ($config->getFields() as $field) {
+				$data_name = $config->getDataName($field);
 
 				if (isset($data[$data_name])) {
 					$method = 'set' . Flourish\Text::create($field)
@@ -430,31 +322,20 @@
 		 */
 		final public function temper()
 		{
-			$class = get_class($this);
+			$config = ModelConfiguration::load(get_class($this), __FUNCTION__);
 
-			if (isset(self::$configs[$class]['defaults'])) {
-				foreach (self::$configs[$class]['defaults'] as $field => $default) {
-					if ($this->$field !== NULL) {
-						continue;
-					}
-
-					if (isset(self::$configs[$class]['fields'][$field]['type'])) {
-						switch (self::$configs[$class]['fields'][$field]['type']) {
-							case 'date':
-							case 'datetime':
-							case 'time':
-							case 'object':
-								if (class_exists($default)) {
-									$this->$field = new $default();
-								} else {
-									$this->$field = $default;
-								}
-								break;
-							default:
-								$this->$field = $default;
-						}
-					}
+			foreach ($config->getDefaults() as $field) {
+				if ($this->$field !== NULL) {
+					continue;
 				}
+
+				$default_value = $config->getDefault($field);
+
+				if (preg_match('#^\+(.*)\(\)$#', $default_value, $matches)) {
+					$default_value = new $matches[1]();
+				}
+
+				$this->$field = $default_value;
 			}
 		}
 
@@ -464,34 +345,23 @@
 		 */
 		final public function validate(LifeCycleEventArgs $e = NULL)
 		{
-			$class   = get_class($this);
+			$config  = ModelConfiguration::load(get_class($this), __FUNCTION__);
 			$manager = isset($e)
 				? $e->getEntityManager()
 				: NULL;
 
-			if (!isset(self::$configs[$class]['fields'])) {
-				return;
-			}
+			foreach ($config->getFields() as $field) {
+				$type    = $config->getType($field);
+				$options = $config->getOptions($field);
 
-			$fields_config = self::$configs[$class]['fields'];
+				if (in_array($type, self::$generatedTypes)) {
 
-			foreach ($fields_config as $field => $config) {
-				if (!isset($config['type'])) {
-					$config['type'] == 'string';
-				}
-
-				if (!isset($config['nullable'])) {
-					$config['nullable'] = 'true';
-				}
-
-				if (!$config['nullable'] && !in_array($config['type'], self::$generatedTypes)) {
+				} elseif (!$config->getNullable($field)) {
 					self::validateIsNotNull($this, $field);
 				}
 
-				if (!isset($config['type']) || $config['type'] == 'string') {
-					if (isset($config['length'])) {
-						self::validateStringLength($this, $field, $config['length']);
-					}
+				if ($type == 'string' && isset($options['length'])) {
+					self::validateStringLength($this, $field, $options['length']);
 				}
 			}
 

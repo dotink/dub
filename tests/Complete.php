@@ -1,12 +1,11 @@
 <?php namespace Dotink\Lab
 {
 	use Dotink\Dub\Model;
+	use Dotink\Dub\ModelConfiguration;
 	use Dotink\Dub\DatabaseManager;
 
 	return [
 		'setup' => function($data, $shared) {
-			needs('vendor/autoload.php');
-
 			$shared->testDB    = __DIR__ . DS . 'workspace' . DS . 'test.db';
 			$shared->databases = new DatabaseManager();
 			$shared->databases->add('default', [
@@ -21,38 +20,36 @@
 				'dbname' => 'rummage'
 			]);
 
-			spl_autoload_register('Dotink\Dub\Model::dynamicLoader');
-
-			Model::configure('Dotink\Lab\User', [
-				'pkey' => 'id',
+			ModelConfiguration::store('Dotink\Lab\User', [
 				'fields' => [
 					'id'           => ['type' => 'serial'],
 					'name'         => ['type' => 'string'],
 					'emailAddress' => ['type' => 'string', 'nullable' => FALSE, 'unique' => TRUE],
-					'dateCreated'  => ['type' => 'datetime']
+					'dateCreated'  => ['type' => 'datetime', 'default' => '+DateTime()']
 				],
-				'defaults' => [
-					'dateCreated' => 'DateTime'
-				]
+				'primary' => 'id'
 			]);
 		},
 
 		'tests' => [
-
-
-			'Create Schema' => function($data, $shared) {
-				$shared->databases->map('default', 'Dotink\Lab\User');
-				$shared->databases->createSchema('default');
-			},
-
 			'Basic Model' => function($data, $shared) {
-				$user = new User();
+				$user = Model::create('Dotink\Lab\User');
 				$user->setName('Matthew J. Sahagian');
 
 				assert('Dotink\Lab\User::$name')
 					-> using($user)
 					-> equals('Matthew J. Sahagian')
 				;
+			},
+
+			'Create Schema' => function($data, $shared) {
+				$shared->databases->map('default', 'Dotink\Lab\User');
+				$shared->databases->createSchema('default');
+			},
+
+			'Get Model Status' => function($data, $shared) {
+				$user = Model::create('Dotink\Lab\User');
+				$user->setName('Matthew J. Sahagian');
 
 				assert('Dotink\Lab\User::isNew')
 					-> using  ($user)

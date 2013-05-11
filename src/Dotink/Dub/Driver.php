@@ -36,7 +36,7 @@
          */
         public function getAllClassNames()
         {
-            return array();
+            return array_keys(self::$configs);
         }
 
 
@@ -64,19 +64,6 @@
         public function loadMetadataForClass($class_name, ClassMetadata $metadata)
         {
             $class_name::loadMetadata($metadata);
-        }
-
-
-        /**
-         * Registers a class with the mapping driver
-         *
-         * @access public
-         * @param string $clss_name The class the register
-         * @return void
-         */
-        public function registerClass($class_name)
-        {
-            $this->classNames[] = $class_name;
         }
     }
 }

@@ -185,7 +185,7 @@ $databases['default']->flush();
 ### Removing a Model
 
 ```php
-$user->remove($database['default']);
+$user->remove($databases['default']);
 ```
 
 ### Database mapping
@@ -205,3 +205,15 @@ ModelConfiguration::store('User', [
 ```
 
 The default convention for a repo is the pluralized underscore/snake format of the class's short name, so a model with a shorname of `User` would be `users`.
+
+You can also configure models from existing tables on databases:
+
+```php
+ModelConfiguration::reflect('User', $databases['default']);
+```
+
+This will use the standard repo convention, but you can specify a repository with an alternative name as well:
+
+```php
+ModelConfiguration::reflect('User', $databases['default'], 'Forum_Users');
+```

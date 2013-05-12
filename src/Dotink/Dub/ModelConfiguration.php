@@ -495,11 +495,12 @@
 		private function parse($config)
 		{
 			self::$dataNames[$this->class] = array();
-			self::$nullable[$this->class]   = array();
-			self::$options[$this->class]    = array();
-			self::$indexes[$this->class]    = array();
-			self::$types[$this->class]      = array();
-			self::$ukeys[$this->class]      = array();
+			self::$nullable[$this->class]  = array();
+			self::$defaults[$this->class]  = array();
+			self::$options[$this->class]   = array();
+			self::$indexes[$this->class]   = array();
+			self::$types[$this->class]     = array();
+			self::$ukeys[$this->class]     = array();
 
 			$this->parseRepository($config);
 			$this->parseFields($config);

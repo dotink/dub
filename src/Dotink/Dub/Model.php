@@ -365,7 +365,7 @@
 			if (count($this->validationMessages)) {
 				throw new ValidationException(sprintf(
 					'Could not validate entity of type %s',
-					$class
+					get_class($this)
 				));
 			}
 		}

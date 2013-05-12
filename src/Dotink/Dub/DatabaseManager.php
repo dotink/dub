@@ -30,7 +30,10 @@
 		private $connections = array();
 
 
-
+		/**
+		 *
+		 */
+		private $namespaces = array();
 
 
 		/**
@@ -60,7 +63,7 @@
 		 * @param string $proxy_path The path to use for proxies, if NULL system temp dir is used
 		 * @return void
 		 */
-		public function add($name, Array $connection, $proxy_path = NULL)
+		public function add($name, Array $connection, $namespace = NULL, $proxy_path = NULL)
 		{
 			$config = new Configuration();
 			$cache  = $this->developmentMode
@@ -69,7 +72,7 @@
 
 			$config->setMetadataCacheImpl($cache);
 			$config->setQueryCacheImpl($cache);
-			$config->setProxyNamespace('Dub\Proxies');
+			$config->setProxyNamespace($namespace ? ($namespace . '\\Proxies') : 'Proxies');
 			$config->setProxyDir(!isset($proxy_path)
 				? sys_get_temp_dir()
 				: $proxy_path
@@ -83,10 +86,20 @@
 				$config->setAutoGenerateProxyClasses(FALSE);
 			}
 
+			if (isset($this->namespaces[$namespace])) {
+				throw new Flourish\ProgrammerException(
+					'Database %s already registered for the %s namespace',
+					$this->namespaces[$namespace],
+					$namespace ? $namespace : 'global'
+				);
+			}
+
 			$this->offsetSet($name, EntityManager::create($connection, $config));
 
-			$this->connections[$name] = $connection;
-			$this->configs[$name]     = $config;
+			$this->connections[$name]     = $connection;
+			$this->configs[$name]         = $config;
+			$this->namespaces[$namespace] = $name;
+
 		}
 
 
@@ -127,6 +140,17 @@
 			}
 
 			$schema_tool->createSchema($this->fetchMetaData($database, $classes));
+		}
+
+
+		/**
+		 *
+		 */
+		public function lookup($namespace)
+		{
+			return isset($this->namespaces[$namespace])
+				? $this[$this->namespaces[$namespace]]
+				: NULL;
 		}
 
 

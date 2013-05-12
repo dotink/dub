@@ -72,7 +72,7 @@
 		/**
 		 *
 		 */
-		final static public function loadMetadata(ClassMetadata $metadata)
+		static public function loadMetadata(ClassMetadata $metadata)
 		{
 			$class   = get_called_class();
 			$builder = new ClassMetadataBuilder($metadata);
@@ -272,7 +272,7 @@
 		/**
 		 *
 		 */
-		final public function populate($data)
+		public function populate($data)
 		{
 			$config = ModelConfiguration::load(get_class($this), __FUNCTION__);
 
@@ -289,7 +289,7 @@
 		/**
 		 *
 		 */
-		final public function remove(EntityManager $em)
+		public function remove(EntityManager $em)
 		{
 			$class = get_class($this);
 			$state = $em->getUnitOfWork()->getEntityState($this);
@@ -303,7 +303,7 @@
 		/**
 		 *
 		 */
-		final public function store(EntityManager $em = NULL)
+		public function store(EntityManager $em = NULL)
 		{
 			$class = get_class($this);
 			$state = $em->getUnitOfWork()->getEntityState($this);
@@ -340,7 +340,7 @@
 		/**
 		 *
 		 */
-		final public function validate(LifeCycleEventArgs $e = NULL)
+		public function validate(LifeCycleEventArgs $e = NULL)
 		{
 			$config  = ModelConfiguration::load(get_class($this), __FUNCTION__);
 			$manager = isset($e)

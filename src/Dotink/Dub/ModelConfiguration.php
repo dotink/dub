@@ -100,7 +100,7 @@
         static public function load($class, $action = 'get configuration')
         {
             if (!isset(self::$configs[$class])) {
-                throw new Flourish\ProgrammerException(
+                throw new Flourish\EnvironmentException(
                     'Cannot %s, configuration for class %s is not found',
                     $action,
                     $class
@@ -109,6 +109,40 @@
 
             return self::$configs[$class];
         }
+
+
+		/**
+		 *
+		 */
+		static public function makeDataName($field)
+		{
+			return Flourish\Text::create($field)
+				-> underscorize()
+				-> compose();
+		}
+
+
+		/**
+		 *
+		 */
+		static public function makeField($data_name)
+		{
+			return strpos($data_name, '_') !== FALSE
+				? Flourish\Text::create($data_name)->camelize()->compose()
+				: $data_name;
+		}
+
+
+		/**
+		 *
+		 */
+		static public function makeRepositoryName($short_name)
+		{
+			return Flourish\Text::create($short_name)
+				-> underscorize()
+				-> pluralize()
+				-> compose();
+		}
 
 
         /**
@@ -224,40 +258,6 @@
 
 
 			self::store($class, $config);
-		}
-
-
-		/**
-		 *
-		 */
-		static protected function makeDataName($field)
-		{
-			return Flourish\Text::create($field)
-				-> underscorize()
-				-> compose();
-		}
-
-
-		/**
-		 *
-		 */
-		static protected function makeField($data_name)
-		{
-			return strpos($data_name, '_') !== FALSE
-				? Flourish\Text::create($data_name)->camelize()->compose()
-				: $data_name;
-		}
-
-
-		/**
-		 *
-		 */
-		static protected function makeRepositoryName($short_name)
-		{
-			return Flourish\Text::create($short_name)
-				-> underscorize()
-				-> pluralize()
-				-> compose();
 		}
 
 

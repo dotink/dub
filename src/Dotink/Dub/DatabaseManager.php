@@ -149,7 +149,7 @@
 		public function lookup($namespace)
 		{
 			return isset($this->namespaces[$namespace])
-				? $this[$this->namespaces[$namespace]]
+				? $this->namespaces[$namespace]
 				: NULL;
 		}
 

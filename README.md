@@ -165,8 +165,9 @@ You can lookup a database via its namespace with the `lookup()` method.  This wi
 ```
 namespace Dotink\Forums;
 
-$database = $databases->lookup(__NAMESPACE__);
-$post     = $database->find(__NAMESPACE__ . '\Post', 1);
+$namespace = __NAMESPACE__;
+$database  = $databases[$databases->lookup($namespace)];
+$post      = $database->find($namespace . '\Post', 1);
 
 $post->setTitle('This is the first post');
 $post->store($database);

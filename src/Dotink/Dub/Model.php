@@ -347,6 +347,8 @@
 				? $e->getEntityManager()
 				: NULL;
 
+			$this->clearValidationMessages();
+
 			foreach ($config->getFields() as $field) {
 				$type    = $config->getType($field);
 				$options = $config->getOptions($field);
@@ -368,6 +370,15 @@
 					get_class($this)
 				));
 			}
+		}
+
+
+		/**
+		 *
+		 */
+		protected function clearValidationMessages()
+		{
+			$this->validationMessages = array();
 		}
 	}
 }

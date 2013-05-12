@@ -154,6 +154,24 @@ $connection = [
 $databases->add('default', $connection);
 ```
 
+If you add multiple databases you will need to namespace additional ones added.  The default namespace is assumed global.  Namespacing is use for the Proxy namespace, but can also be used to look-up databases.
+
+```php
+$databases->add('forums', $connection, 'Dotink\Forums');
+```
+
+You can lookup a database via its namespace with the `lookup()` method.  This will return the associated alias *not* the entity manager itself.
+
+```
+namespace Dotink\Forums;
+
+$database = $databases->lookup(__NAMESPACE__);
+$post     = $database->find(__NAMESPACE__ . '\Post', 1);
+
+$post->setTitle('This is the first post');
+$post->store($database);
+```
+
 ### Writing the Schema
 
 ```php

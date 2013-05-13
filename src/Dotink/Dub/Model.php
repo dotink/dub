@@ -303,7 +303,6 @@
 				return;
 			}
 
-			$class = get_class($this);
 			$state = $em->getUnitOfWork()->getEntityState($this);
 
 			if ($state == UnitOfWork::STATE_MANAGED) {
@@ -321,7 +320,6 @@
 				return;
 			}
 
-			$class = get_class($this);
 			$state = $em->getUnitOfWork()->getEntityState($this);
 
 			if (in_array($state, [UnitOfWork::STATE_NEW, UnitOfWork::STATE_REMOVED])) {

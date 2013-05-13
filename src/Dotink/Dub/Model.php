@@ -236,36 +236,44 @@
 		/**
 		 *
 		 */
-		public function isDetached(EntityManager $em)
+		public function isDetached(EntityManager $em = NULL)
 		{
-			return $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_DETACHED;
+			return $em
+				? $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_DETACHED
+				: FALSE;
 		}
 
 
 		/**
 		 *
 		 */
-		public function isManaged(EntityManager $em)
+		public function isManaged(EntityManager $em = NULL)
 		{
-			return $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_MANAGED;
+			return $em
+				? $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_MANAGED
+				: FALSE;
 		}
 
 
 		/**
 		 *
 		 */
-		public function isNew(EntityManager $em)
+		public function isNew(EntityManager $em = NULL)
 		{
-			return $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_NEW;
+			return $em
+				? $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_NEW
+				: TRUE;
 		}
 
 
 		/**
 		 *
 		 */
-		public function isRemoved(EntityManager $em)
+		public function isRemoved(EntityManager $em = NULL)
 		{
-			return $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_REMOVED;
+			return $em
+				? $em->getUnitOfWork()->getEntityState($this) == UnitOfWork::STATE_REMOVED
+				: FALSE;
 		}
 
 
@@ -289,8 +297,12 @@
 		/**
 		 *
 		 */
-		public function remove(EntityManager $em)
+		public function remove(EntityManager $em = NULL)
 		{
+			if (!$em) {
+				return;
+			}
+
 			$class = get_class($this);
 			$state = $em->getUnitOfWork()->getEntityState($this);
 
@@ -305,6 +317,10 @@
 		 */
 		public function store(EntityManager $em = NULL)
 		{
+			if (!$em) {
+				return;
+			}
+
 			$class = get_class($this);
 			$state = $em->getUnitOfWork()->getEntityState($this);
 

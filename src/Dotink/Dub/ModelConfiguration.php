@@ -150,7 +150,7 @@
          */
         static public function store($class, Array $config)
         {
-            self::$configs[$class] = new self($class, $config);
+            return self::$configs[$class] = new self($class, $config);
         }
 
 
@@ -256,8 +256,7 @@
 				}
 			}
 
-
-			self::store($class, $config);
+			return self::store($class, $config);
 		}
 
 

@@ -13,9 +13,61 @@ ModelConfiguration::store('User', [
 	'fields' => [
 		'id'           => ['type' => 'serial', 'nullable' => FALSE],
 		'name'         => ['type' => 'string', 'nullable' => FALSE],
-		'emailAddress' => ['type' => 'string', 'nullable' => FALSE, 'unique'  => TRUE ],
-		'status'       => ['type' => 'string', 'nullable' => FALSE, 'default' => 'Active']
+		'status'       => ['type' => 'string', 'nullable' => FALSE, 'default' => 'Active'],
+
+		//
+		// Many-to-Many
+		//
+
+		'groups' => [
+			'references' => 'Group', 'via' => [
+				'repo'  => 'user_groups',
+				'local' => ['user'  => 'id'],
+				'pivot' => ['group' => 'id']
+			]
+		],
+
+		//
+		// One-to-One
+		//
+
+		'profile' => [
+			'references' => 'Profile, 'unique' => TRUE, 'on_delete' => 'CASCADE', via' => [
+				'local' => ['profile' => 'id'],
+				'unique' => TRUE
+			]
+		],
+
+		//
+		// One-to-Many
+		//
+
+		'emailAddresses' => [
+			'references' => 'EmailAddress', 'on_delete' => 'CASCADE', 'via' => [
+				'local' => ['id' => 'user'],
+				'unique' => TRUE
+			]
+		]
 	],
+
+	'primary' => 'id'
+]);
+
+
+ModelConfiguration::store('Division', [
+	'fields' => [
+		'id'   => ['type' => 'serial', 'nullable' => FALSE],
+		'name' => ['type' => 'string', 'nullable' => FALSE],
+
+		//
+		// One-to-Many
+		//
+
+		'users' => [
+			'references' => 'User', 'remove_orphans' => TRUE
+		]
+	],
+
 	'primary' => 'id'
 ]);
 ```
@@ -23,7 +75,6 @@ ModelConfiguration::store('User', [
 #### Configuration Schema
 
 Although there are many similarities, the configuration schema for Dub models differs from Doctrine 2 in a number of ways.  Let's look at some of basic field definitions to get an idea.
-
 
 Specifying a type of `serial` will actually map a field to an integer, however, it will automatically establish autogeneration/autoincrement on that field.
 
@@ -236,3 +287,11 @@ This will use the standard repo convention, but you can specify a repository wit
 ```php
 ModelConfiguration::reflect('User', $databases['default'], 'Forum_Users');
 ```
+
+## Notes
+
+Some deficiencies of Doctrine 2 discovered while working on this:
+
+- Support exists for `onDelete` for associations, but not `onUpdate`
+- Explicitly defined unique keys for one-to-one associations will be replaced with ugly names
+- Identifiers are not quoted (beware reserved words for tables/columns)

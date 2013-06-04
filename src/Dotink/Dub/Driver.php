@@ -49,7 +49,7 @@
          */
         public function isTransient($class_name)
         {
-            return ! method_exists($class_name, 'loadMetadata');
+            return !method_exists($class_name, 'loadMetadata');
         }
 
 

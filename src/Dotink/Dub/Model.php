@@ -6,6 +6,7 @@
 	use Doctrine\ORM\EntityManager;
 	use Doctrine\ORM\Mapping\ClassMetadata;
 	use Doctrine\ORM\Event\LifecycleEventArgs;
+	use Doctrine\Common\Collections\ArrayCollection;
 	use Doctrine\ORM\Mapping\Builder\ClassMetadataBuilder;
 
 	/**
@@ -19,8 +20,9 @@
 		 *
 		 */
 		static private $generatedTypes = [
+			'association',
 			'serial',
-			'uuid'
+			'uuid',
 		];
 
 
@@ -91,6 +93,10 @@
 			$metadata->setIdentifier($config->getPrimary());
 
 			foreach ($config->getFields() as $field) {
+				if ($config->getType($field) == 'association') {
+					continue;
+				}
+
 				$metadata->mapField($config->getFieldMap($field));
 
 				switch ($config->getType($field)) {
@@ -110,27 +116,26 @@
 			foreach ($config->getIndexes('unique') as $index) {
 				$builder->addUniqueConstraint($config->getUKey($index), $index);
 			}
-/*
-			foreach ($config->getReferences() as $reference) {
-				switch ($config->getReferenceType($reference)) {
+
+			foreach ($config->getFields('association') as $field) {
+				switch ($config->getRelationship($field)) {
 						case ClassMetadata::ONE_TO_ONE:
-							$metadata->mapOneToOne($config->getReferenceMap($reference));
+							$metadata->mapOneToOne($config->getAssociationMap($field));
 							break;
 
 						case ClassMetadata::ONE_TO_MANY:
-							$metadata->mapOneToMany($config->getReferenceMap($reference));
+							$metadata->mapOneToMany($config->getAssociationMap($field));
 							break;
 
 						case ClassMetadata::MANY_TO_ONE:
-							$metadata->mapManyToOne($config->getReferenceMap($reference));
+							$metadata->mapManyToOne($config->getAssociationMap($field));
 							break;
 
 						case ClassMetadata::MANY_TO_MANY:
-							$metadata->mapManyToMany($config->getReferenceMap($reference));
+							$metadata->mapManyToMany($config->getAssociationMap($field));
 							break;
 				}
 			}
-*/
 
 			if (is_callable([$class, 'configureMetadata'])) {
 				call_user_func([$class, 'configureMetadata'], $builder);
@@ -175,6 +180,26 @@
 				self::addValidationMessage($entity, $field, Flourish\Text::create(
 					'Cannot exceed %s characters'
 				)->compose(NULL, 30));
+			}
+		}
+
+		/**
+		 *
+		 */
+		public function __construct()
+		{
+			$config = ModelConfiguration::load(get_class($this));
+
+			foreach ($config->getFields('association') as $field) {
+				$relationship  = $config->getRelationship($field);
+				$to_many_types = [
+					ClassMetadata::ONE_TO_MANY,
+					ClassMetadata::MANY_TO_MANY
+				];
+
+				if (in_array($relationship, $to_many_types)) {
+					$this->$field = new ArrayCollection();
+				}
 			}
 		}
 

@@ -10,28 +10,28 @@
 	class DatabaseManager extends ArrayObject
 	{
 		/**
-		 * An array of database aliases
+		 * Lists of configs keyed by primary database name
 		 *
 		 * @access private
 		 * @var array
-		 */
-		private $aliases = array();
-
-
-		/**
-		 *
 		 */
 		private $configs = array();
 
 
 		/**
+		 * Lists of connections keyed by primary database name
 		 *
+		 * @access private
+		 * @var array
 		 */
 		private $connections = array();
 
 
 		/**
+		 * List of namespaces keyed by primary database name
 		 *
+		 * @access private
+		 * @var array
 		 */
 		private $namespaces = array();
 
@@ -46,7 +46,7 @@
 
 
 		/**
-		 * A map of classes currently associated with aliased databases
+		 * A map of entity classes currently associated with databases
 		 *
 		 * @access private
 		 * @var array
@@ -55,10 +55,10 @@
 
 
 		/**
-		 * Adds a new connection under an initial alias
+		 * Adds a new connection with a simple database name
 		 *
 		 * @access public
-		 * @param string $name The database name (primary alias)
+		 * @param string $name The database name
 		 * @param array $connection The connection parameters (see doctrine 2)
 		 * @param string $proxy_path The path to use for proxies, if NULL system temp dir is used
 		 * @return void
@@ -86,33 +86,19 @@
 				$config->setAutoGenerateProxyClasses(FALSE);
 			}
 
-			if (isset($this->namespaces[$namespace])) {
+			if (($existing_database = array_search($namespace, $this->namespaces)) !== FALSE) {
 				throw new Flourish\ProgrammerException(
 					'Database %s already registered for the %s namespace',
-					$this->namespaces[$namespace],
+					$existing_database,
 					$namespace ? $namespace : 'global'
 				);
 			}
 
 			$this->offsetSet($name, EntityManager::create($connection, $config));
 
-			$this->connections[$name]     = $connection;
-			$this->configs[$name]         = $config;
-			$this->namespaces[$namespace] = $name;
-
-		}
-
-
-		/**
-		 * Aliases a database to another
-		 *
-		 * @access public
-		 * @param string $database The initial alias used when adding the DB
-		 * @param string $alias The alias to allow it to be referenced as
-		 * @return void
-		 */
-		public function alias($database, $alias)
-		{
+			$this->connections[$name] = $connection;
+			$this->configs[$name]     = $config;
+			$this->namespaces[$name]  = $namespace;
 
 		}
 
@@ -121,7 +107,7 @@
 		 * Creates the schema from mapped classes or class/classes specified
 		 *
 		 * @access public
-		 * @param string $database A database alias
+		 * @param string $database A database name
 		 * @param array $classes A list of classes to create schemas for, uses map if not specified
 		 * @return void
 		 */
@@ -130,26 +116,44 @@
 			$this->validateDatabase($database);
 
 			$schema_tool = new SchemaTool($this[$database]);
-
-			if (!count($classes) && isset($this->map[$database])) {
-				$classes = $this->map[$database];
-			}
-
-			foreach ($classes as $class) {
-				Model::create($class, TRUE);
-			}
+			$classes     = $this->resolveClasses($database, $classes);
 
 			$schema_tool->createSchema($this->fetchMetaData($database, $classes));
 		}
 
 
 		/**
+		 * Drops the schema of mapped classes or class/classes specified
 		 *
+		 * @access public
+		 * @param string $database A database name
+		 * @param array $classes A list of classes to create schemas for, uses map if not specified
+		 * @return void
+		 */
+		public function dropSchema($database, $classes = array())
+		{
+			$this->validateDatabase($database);
+
+			$schema_tool = new SchemaTool($this[$database]);
+			$classes     = $this->resolveClasses($database, $classes);
+
+			$schema_tool->dropSchema($this->fetchMetaData($database, $classes));
+		}
+
+
+		/**
+		 * Find a database name by namespace
+		 *
+		 * @access public
+		 * @param string $namespace The namespace with which to lookup a database name
+		 * @return string The primary database name for that namespace, NULL if it doesn't exist
 		 */
 		public function lookup($namespace)
 		{
-			return isset($this->namespaces[$namespace])
-				? $this->namespaces[$namespace]
+			$database_name = array_search($namespace, $this->namespaces);
+
+			return ($database_name !== FALSE)
+				? $database_name
 				: NULL;
 		}
 
@@ -158,7 +162,7 @@
 		 * Maps a class to a database
 		 *
 		 * @access public
-		 * @param string $database A database alias
+		 * @param string $database A database name
 		 * @param string $class The class to map to the database
 		 * @return void
 		 */
@@ -177,7 +181,11 @@
 
 
 		/**
+		 * Resets the database by creating a new instance with the same connection/config
 		 *
+		 * @access public
+		 * @param string $database A database name
+		 * @return void
 		 */
 		public function reset($database)
 		{
@@ -195,7 +203,31 @@
 
 
 		/**
+		 * Retrieve a database object by namespace
 		 *
+		 * @access public
+		 * @param string $namespace The namespace with which to retrieve a database object
+		 * @return EntityManager The database associated with the namespace
+		 * @throws Flourish\ProgrammerException If no database is registered with that namespace
+		 */
+		public function retrieve($namespace)
+		{
+			if (!($database_name = $this->lookup($namespace))) {
+				throw new Flourish\ProgrammerException(
+					'Cannot retrieve database for namespace %s, none found',
+					$namespace
+				);
+			}
+
+			return $this[$database_name];
+		}
+
+
+		/**
+		 * Sets the database manager to development mode
+		 *
+		 * @access public
+		 * @return void
 		 */
 		public function setDevelopmentMode()
 		{
@@ -204,13 +236,14 @@
 
 
 		/**
-		 *
+		 * Updates the schema for a given database
 		 */
 		public function updateSchema($database, $classes = array())
 		{
 			$this->validateDatabase($database);
 
 			$schema_tool = new SchemaTool($this[$database]);
+			$classes     = $this->resolveClasses($databse, $classes);
 
 			$schema_tool->updateSchema($this->fetchMetaData($database, $classes));
 		}
@@ -234,6 +267,25 @@
 			}
 
 			return $meta_data;
+		}
+
+
+		/**
+		 *
+		 */
+		private function resolveClasses($database, $classes = array())
+		{
+			if (!count($classes) && isset($this->map[$database])) {
+				$classes = $this->map[$database];
+			}
+
+			foreach ($classes as $class) {
+				if (!class_exists($class)) {
+					Model::create($class, TRUE);
+				}
+			}
+
+			return $classes;
 		}
 
 

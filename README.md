@@ -32,7 +32,7 @@ ModelConfiguration::store('User', [
 		//
 
 		'profile' => [
-			'references' => 'Profile, 'unique' => TRUE, 'on_delete' => 'CASCADE', via' => [
+			'references' => 'Profile', 'unique' => TRUE, 'on_delete' => 'CASCADE', via' => [
 				'local' => ['profile' => 'id'],
 				'unique' => TRUE
 			]

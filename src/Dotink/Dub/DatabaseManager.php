@@ -243,7 +243,7 @@
 			$this->validateDatabase($database);
 
 			$schema_tool = new SchemaTool($this[$database]);
-			$classes     = $this->resolveClasses($databse, $classes);
+			$classes     = $this->resolveClasses($database, $classes);
 
 			$schema_tool->updateSchema($this->fetchMetaData($database, $classes));
 		}
@@ -277,6 +277,8 @@
 		{
 			if (!count($classes) && isset($this->map[$database])) {
 				$classes = $this->map[$database];
+			} else {
+				settype($classes, 'array');
 			}
 
 			foreach ($classes as $class) {

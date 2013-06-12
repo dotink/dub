@@ -191,6 +191,15 @@
 			$config = ModelConfiguration::load(get_class($this));
 
 			foreach ($config->getFields('association') as $field) {
+
+				if (!class_exists($related_class = $config->getReference($field))) {
+					throw new Flourish\ProgrammerException(
+						'Cannot instantiate model of type %s, related class %s does not exist',
+						get_class($this),
+						$related_class
+					);
+				}
+
 				$relationship  = $config->getRelationship($field);
 				$to_many_types = [
 					ClassMetadata::ONE_TO_MANY,

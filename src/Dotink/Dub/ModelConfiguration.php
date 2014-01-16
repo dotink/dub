@@ -126,6 +126,15 @@
 		private $namespace = NULL;
 
 
+		/**
+		 *
+		 */
+		static public function listConfiguredClasses()
+		{
+			return array_keys(self::$configs);
+		}
+
+
         /**
          *
          */
@@ -344,7 +353,8 @@
 				// Add or modify special types/options
 				//
 
-				switch ($config['fields'][$field]['type']) {
+				switch (strtolower($config['fields'][$field]['type'])) {
+					case 'bigint':
 					case 'integer':
 						if ($column->getAutoIncrement()) {
 							$config['fields'][$field]['type'] = 'serial';
@@ -362,8 +372,8 @@
 				// Configure nullable
 				//
 
-				if (!$nullable) {
-					$config['fields'][$field]['nullable'] = FALSE;
+				if ($nullable) {
+					$config['fields'][$field]['nullable'] = TRUE;
 				}
 
 				//
@@ -375,8 +385,10 @@
 				}
 
 				switch ($config['fields'][$field]['type']) {
+					case 'date':
+					case 'time':
 					case 'datetime':
-						if ($default == 'now()' || $default = 'CURRENT_DATETIME') {
+						if ($default == 'now()' || $default == 'CURRENT_DATETIME') {
 							$config['fields'][$field]['default'] = '+DateTime()';
 						}
 						break;
@@ -811,6 +823,7 @@
 			$this->parseTypes($config);
 			$this->parseOptions($config);
 			$this->parseDefaults($config);
+			$this->parseNullable($config);
 
 			$this->parseUKeys($config);
 			$this->parsePrimary($config);
@@ -986,9 +999,9 @@
 		 */
 		private function parseNullable($config)
 		{
-			foreach ($this->getFields() as $field) {
-				if (isset($config['fields'][$field]['nullable'])) {
-					if ((bool) $config['fields'][$field]['nullable']) {
+			foreach ($config['fields'] as $field => $field_data) {
+				if (isset($field_data['nullable'])) {
+					if ((bool) $field_data['nullable']) {
 						self::$nullable[$this->class][] = $field;
 					}
 				}
